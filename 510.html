@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고급 체스 게임 (Advanced Chess)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0f172a;
+        }
+        /* 체스판 보드 스타일링 */
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-template-rows: repeat(8, minmax(0, 1fr));
+            aspect-ratio: 1 / 1;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+        }
+        .square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        .square-light {
+            background-color: #f0d9b5;
+            color: #b58863;
+        }
+        .square-dark {
+            background-color: #b58863;
+            color: #f0d9b5;
+        }
+        /* 선택 및 이동 경로 효과 */
+        .square.selected {
+            background-color: rgba(245, 158, 11, 0.6) !important;
+        }
+        .square.last-move {
+            background-color: rgba(14, 165, 233, 0.4) !important;
+        }
+        .move-indicator {
+            width: 30%;
+            height: 30%;
+            background-color: rgba(16, 185, 129, 0.7);
+            border-radius: 9999px;
+            pointer-events: none;
+        }
+        .capture-indicator {
+            width: 80%;
+            height: 80%;
+            border: 4px solid rgba(239, 68, 68, 0.7);
+            border-radius: 9999px;
+            position: absolute;
+            pointer-events: none;
+        }
+        /* 기물 유니코드 스타일 */
+        .piece {
+            font-size: 3.25rem;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        @media (max-width: 640px) {
+            .piece {
+                font-size: 2.25rem;
+            }
+        }
+        .piece:hover {
+            transform: scale(1.08);
+        }
+        .piece.white-piece {
+            color: #ffffff;
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.75)) drop-shadow(0px 0px 4px rgba(255,255,255,0.5));
+        }
+        .piece.black-piece {
+            color: #1e1b4b;
+            filter: drop-shadow(0px 2px 2px rgba(255,255,255,0.4)) drop-shadow(0px 0px 4px rgba(0,0,0,0.9));
+        }
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+    <!-- 헤더 -->
+    <header class="bg-slate-900 border-b border-slate-800 py-4 px-6 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-500 text-slate-950 p-2.5 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-chess-knight text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wider text-amber-400">CHESS MASTER</h1>
+                <p class="text-xs text-slate-400">HTML5 고급 인공지능 체스</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span id="game-mode-badge" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-semibold">
+                컴퓨터 대전 (쉬움)
+            </span>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- 왼쪽: 게임 보드 및 플레이어 정보 -->
+        <div class="lg:col-span-8 flex flex-col space-y-4">
+            
+            <!-- 상대 플레이어 정보 정보 창 -->
+            <div class="bg-slate-800/80 backdrop-blur border border-slate-700/50 rounded-xl p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div id="opponent-avatar" class="w-10 h-10 rounded-full bg-rose-600 flex items-center justify-center text-lg font-bold shadow-md">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <h2 id="opponent-name" class="font-bold text-slate-200">AI 컴퓨터 (기본)</h2>
+                        <div class="flex space-x-1 mt-0.5" id="opponent-captured">
+                            <!-- 상대방이 잃은 기물 (내가 잡은 기물) -->
+                        </div>
+                    </div>
+                </div>
+                <div id="opponent-status" class="text-sm bg-slate-900 px-3 py-1.5 rounded-lg text-slate-400 font-mono flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-600 animate-pulse" id="opponent-pulse"></span>
+                    <span id="opponent-status-text">대기 중</span>
+                </div>
+            </div>
+
+            <!-- 메인 체스판 -->
+            <div class="relative w-full max-w-[600px] mx-auto">
+                <div id="chess-board" class="chess-board rounded-xl overflow-hidden border-4 border-slate-700">
+                    <!-- 자바스크립트로 칸 생성 -->
+                </div>
+
+                <!-- 폰 프로모션(승급) 팝업 모달 -->
+                <div id="promotion-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
+                    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-xs text-center shadow-2xl">
+                        <h3 class="text-lg font-bold text-amber-400 mb-4">폰 프로모션</h3>
+                        <p class="text-sm text-slate-300 mb-6">승급할 기물을 선택하세요:</p>
+                        <div class="grid grid-cols-4 gap-3">
+                            <button onclick="selectPromotion('q')" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-900 p-3 rounded-lg text-3xl transition">♛</button>
+                            <button onclick="selectPromotion('r')" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-900 p-3 rounded-lg text-3xl transition">♜</button>
+                            <button onclick="selectPromotion('b')" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-900 p-3 rounded-lg text-3xl transition">♝</button>
+                            <button onclick="selectPromotion('n')" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-900 p-3 rounded-lg text-3xl transition">♞</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 게임 오버 알림 오버레이 -->
+                <div id="gameover-overlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex flex-col items-center justify-center rounded-xl p-6 text-center">
+                    <div class="bg-slate-800 border-2 border-amber-500/30 p-8 rounded-2xl max-w-sm shadow-2xl space-y-6">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                            <i id="gameover-icon" class="fa-solid fa-trophy text-amber-400 text-4xl"></i>
+                        </div>
+                        <div>
+                            <h2 id="gameover-title" class="text-2xl font-bold text-amber-400">게임 종료</h2>
+                            <p id="gameover-desc" class="text-slate-300 mt-2 text-sm leading-relaxed">체크메이트로 경기가 마무리되었습니다.</p>
+                        </div>
+                        <button onclick="resetGame()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95">
+                            새 게임 시작하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 내 정보 정보 창 -->
+            <div class="bg-slate-800/80 backdrop-blur border border-slate-700/50 rounded-xl p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-bold shadow-md">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-200">플레이어 (백색)</h2>
+                        <div class="flex space-x-1 mt-0.5" id="player-captured">
+                            <!-- 내가 잃은 기물 (상대방이 잡은 기물) -->
+                        </div>
+                    </div>
+                </div>
+                <div id="player-status" class="text-sm bg-slate-900 px-3 py-1.5 rounded-lg text-emerald-400 font-mono flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="player-pulse"></span>
+                    <span id="player-status-text">내 차례</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 오른쪽: 설정 및 기보 로그 -->
+        <div class="lg:col-span-4 flex flex-col space-y-6 h-full">
+            
+            <!-- 제어 패널 -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg space-y-5">
+                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">게임 컨트롤</h3>
+                
+                <!-- 모드 설정 -->
+                <div class="space-y-2">
+                    <label class="text-xs text-slate-400 block font-semibold">게임 모드</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="mode-pve" onclick="changeMode('pve')" class="bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>인공지능 대전</span>
+                        </button>
+                        <button id="mode-pvp" onclick="changeMode('pvp')" class="bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-users"></i>
+                            <span>로컬 2인 플레이</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI 난이도 설정 (PvE 일 때 활성화) -->
+                <div id="difficulty-section" class="space-y-2">
+                    <label class="text-xs text-slate-400 block font-semibold">AI 난이도 설정</label>
+                    <div class="grid grid-cols-3 gap-1">
+                        <button id="diff-1" onclick="changeDifficulty(1)" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold py-1.5 px-2 rounded-lg text-[10px] transition">
+                            쉬움
+                        </button>
+                        <button id="diff-2" onclick="changeDifficulty(2)" class="bg-slate-700 text-slate-300 font-bold py-1.5 px-2 rounded-lg text-[10px] transition">
+                            보통
+                        </button>
+                        <button id="diff-3" onclick="changeDifficulty(3)" class="bg-slate-700 text-slate-300 font-bold py-1.5 px-2 rounded-lg text-[10px] transition">
+                            어려움
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 유틸리티 버튼 -->
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700">
+                    <button onclick="undoMove()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-2.5 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>한 수 물르기</span>
+                    </button>
+                    <button onclick="resetGame()" class="bg-rose-950/50 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 font-semibold py-2.5 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-arrow-rotate-right"></i>
+                        <span>게임 초기화</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 실시간 기보(Moves Log) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex-1 flex flex-col min-h-[300px] lg:min-h-0">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                    <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center space-x-2">
+                        <i class="fa-solid fa-list-ol"></i>
+                        <span>기보 기록</span>
+                    </h3>
+                    <span id="move-count" class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-400 font-mono">0 수</span>
+                </div>
+                
+                <div id="move-log-container" class="flex-1 overflow-y-auto pr-1 text-sm space-y-1 max-h-[220px] lg:max-h-none">
+                    <div id="empty-log-msg" class="text-slate-500 text-center py-10 italic text-xs">
+                        대국이 시작되면 실시간 기보가 여기에 기록됩니다.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
+        <p>© 2026 Chess Master. Powered by Custom Minimax Engine.</p>
+    </footer>
+
+    <!-- 체스 엔진 & 게임 로직 스크립트 -->
+    <script>
+        // --- 1. 글로벌 체스 기물 및 유니코드 설정 ---
+        const UNICODE_PIECES = {
+            'wk': '♚', 'wq': '♛', 'wr': '♜', 'wb': '♝', 'wn': '♞', 'wp': '♟',
+            'bk': '♚', 'bq': '♛', 'br': '♜', 'bb': '♝', 'bn': '♞', 'bp': '♟'
+        };
+
+        const PIECE_VALUES = {
+            'k': 10000, 'q': 900, 'r': 500, 'b': 330, 'n': 320, 'p': 100
+        };
+
+        // 체스 기물 점수 가중치 맵 (AI 인공지능 탐색용 위치 가치 평가)
+        const PAWN_PST = [
+            [0,  0,  0,  0,  0,  0,  0,  0],
+            [50, 50, 50, 50, 50, 50, 50, 50],
+            [10, 10, 20, 30, 30, 20, 10, 10],
+            [5,  5, 10, 25, 25, 10,  5,  5],
+            [0,  0,  0, 20, 20,  0,  0,  0],
+            [5, -5,-10,  0,  0,-10, -5,  5],
+            [5, 10, 10,-20,-20, 10, 10,  5],
+            [0,  0,  0,  0,  0,  0,  0,  0]
+        ];
+
+        const KNIGHT_PST = [
+            [-50,-40,-30,-30,-30,-30,-40,-50],
+            [-40,-20,  0,  0,  0,  0,-20,-40],
+            [-30,  0, 10, 15, 15, 10,  0,-30],
+            [-30,  5, 15, 20, 20, 15,  5,-30],
+            [-30,  0, 15, 20, 20, 15,  0,-30],
+            [-30,  5, 10, 15, 15, 10,  5,-30],
+            [-40,-20,  0,  5,  5,  0,-20,-40],
+            [-50,-40,-30,-30,-30,-30,-40,-50]
+        ];
+
+        const BISHOP_PST = [
+            [-20,-10,-10,-10,-10,-10,-10,-20],
+            [-10,  0,  0,  0,  0,  0,  0,-10],
+            [-10,  0,  5, 10, 10,  5,  0,-10],
+            [-10,  5,  5, 10, 10,  5,  5,-10],
+            [-10,  0, 10, 10, 10, 10,  0,-10],
+            [-10, 10, 10, 10, 10, 10, 10,-10],
+            [-10,  5,  0,  0,  0,  0,  5,-10],
+            [-20,-10,-10,-10,-10,-10,-10,-20]
+        ];
+
+        const ROOK_PST = [
+            [0,  0,  0,  0,  0,  0,  0,  0],
+            [5, 10, 10, 10, 10, 10, 10,  5],
+            [-5,  0,  0,  0,  0,  0,  0, -5],
+            [-5,  0,  0,  0,  0,  0,  0, -5],
+            [-5,  0,  0,  0,  0,  0,  0, -5],
+            [-5,  0,  0,  0,  0,  0,  0, -5],
+            [-5,  0,  0,  0,  0,  0,  0, -5],
+            [0,  0,  0,  5,  5,  0,  0,  0]
+        ];
+
+        const QUEEN_PST = [
+            [-20,-10,-10, -5, -5,-10,-10,-20],
+            [-10,  0,  0,  0,  0,  0,  0,-10],
+            [-10,  0,  5,  5,  5,  5,  0,-10],
+            [-5,  0,  5,  5,  5,  5,  0, -5],
+            [0,  0,  5,  5,  5,  5,  0, -5],
+            [-10,  5,  5,  5,  5,  5,  0,-10],
+            [-10,  0,  5,  0,  0,  0,  0,-10],
+            [-20,-10,-10, -5, -5,-10,-10,-20]
+        ];
+
+        const KING_MIDDLE_PST = [
+            [-30,-40,-40,-50,-50,-40,-40,-30],
+            [-30,-40,-40,-50,-50,-40,-40,-30],
+            [-30,-40,-40,-50,-50,-40,-40,-30],
+            [-30,-40,-40,-50,-50,-40,-40,-30],
+            [-20,-30,-30,-40,-40,-30,-30,-20],
+            [-10,-20,-20,-20,-20,-20,-20,-10],
+            [20, 20,  0,  0,  0,  0, 20, 20],
+            [20, 30, 10,  0,  0, 10, 30, 20]
+        ];
+
+        // --- 2. 상태 관리 ---
+        let board = [];
+        let turn = 'w'; // 'w' = White (Player), 'b' = Black (Player/AI)
+        let selectedSquare = null;
+        let legalMovesForSelected = [];
+        let gameHistory = []; // 수 무르기(Undo)용 이전 보드 상태 추적
+        let capturedPieces = { w: [], b: [] }; // 캡처된 기물 기록
+        let gameMode = 'pve'; // 'pve' = 컴퓨터 대전, 'pvp' = 2인 대전
+        let aiDifficulty = 1; // 1 = 쉬움, 2 = 보통, 3 = 어려움
+        let isGameOver = false;
+        let promotionState = null; // 프로모션 결정 대기 상태 기록 {from, to}
+        let lastMove = null; // {from: [r,c], to: [r,c]} 하이라이트 표시용
+
+        // 초기 보드 세팅 (r:행, c:열)
+        // 0~7 행: 백색 시점 기준 0행은 흑색 진영(8랭크), 7행은 백색 진영(1랭크)
+        function getInitialBoard() {
+            return [
+                ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+                ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+                ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+            ];
+        }
+
+        // --- 3. DOM 대기 후 게임 시작 ---
+        window.onload = function() {
+            initGame();
+        };
+
+        function initGame() {
+            board = getInitialBoard();
+            turn = 'w';
+            selectedSquare = null;
+            legalMovesForSelected = [];
+            gameHistory = [];
+            capturedPieces = { w: [], b: [] };
+            isGameOver = false;
+            promotionState = null;
+            lastMove = null;
+
+            updateModeUI();
+            updateCapturedUI();
+            updateTurnIndicators();
+            renderBoard();
+            clearLogs();
+        }
+
+        // --- 4. 렌더링 시스템 ---
+        function renderBoard() {
+            const boardEl = document.getElementById('chess-board');
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const squareEl = document.createElement('div');
+                    squareEl.id = `square-${r}-${c}`;
+                    squareEl.className = `square ${(r + c) % 2 === 0 ? 'square-light' : 'square-dark'}`;
+                    
+                    // 기물 정보 가져오기
+                    const piece = board[r][c];
+
+                    // 마지막 이동 하이라이트
+                    if (lastMove && ((lastMove.from[0] === r && lastMove.from[1] === c) || (lastMove.to[0] === r && lastMove.to[1] === c))) {
+                        squareEl.classList.add('last-move');
+                    }
+
+                    if (selectedSquare && selectedSquare[0] === r && selectedSquare[1] === c) {
+                        squareEl.classList.add('selected');
+                    }
+
+                    if (piece) {
+                        const pieceEl = document.createElement('div');
+                        pieceEl.className = `piece ${piece.startsWith('w') ? 'white-piece' : 'black-piece'}`;
+                        pieceEl.innerText = UNICODE_PIECES[piece];
+                        
+                        // 클릭 이벤트 핸들러
+                        pieceEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            handleSquareClick(r, c);
+                        });
+                        squareEl.appendChild(pieceEl);
+                    }
+
+                    // 빈 공간 클릭 이벤트
+                    squareEl.addEventListener('click', () => {
+                        handleSquareClick(r, c);
+                    });
+
+                    // 이동할 수 있는 도트 및 캡쳐 경고 표시
+                    const targetMove = legalMovesForSelected.find(m => m[0] === r && m[1] === c);
+                    if (targetMove) {
+                        if (piece) {
+                            // 기물이 있는 곳은 빨간색 원 바깥 테두리로 캡처 표시
+                            const captureEl = document.createElement('div');
+                            captureEl.className = 'capture-indicator';
+                            squareEl.appendChild(captureEl);
+                        } else {
+                            // 빈 곳은 녹색 작은 도트 표시
+                            const dotEl = document.createElement('div');
+                            dotEl.className = 'move-indicator';
+                            squareEl.appendChild(dotEl);
+                        }
+                    }
+
+                    boardEl.appendChild(squareEl);
+                }
+            }
+        }
+
+        // --- 5. 규칙 및 행동 제어 로직 ---
+        function handleSquareClick(r, c) {
+            if (isGameOver || (gameMode === 'pve' && turn === 'b')) return; // 게임 오버 상태이거나 AI가 차례일 경우 조작 비활성화
+
+            const clickedPiece = board[r][c];
+
+            // 1. 이미 내 기물이 선택된 상태에서 클릭한 곳이 가능한 이동 경로일 경우 이동 실행
+            const isMoveValid = legalMovesForSelected.some(m => m[0] === r && m[1] === c);
+            if (selectedSquare && isMoveValid) {
+                executeMove(selectedSquare[0], selectedSquare[1], r, c);
+                return;
+            }
+
+            // 2. 다른 기물 선택 시도
+            if (clickedPiece && clickedPiece.startsWith(turn)) {
+                selectedSquare = [r, c];
+                legalMovesForSelected = getLegalMoves(r, c, board);
+            } else {
+                // 아군 기물이 아니고 이동 가능한 칸도 아니면 선택 해제
+                selectedSquare = null;
+                legalMovesForSelected = [];
+            }
+            renderBoard();
+        }
+
+        // 보드의 정당한 모든 이동 규칙 생성 (체크 검증 포함)
+        function getLegalMoves(r, c, currentBoard) {
+            const piece = currentBoard[r][c];
+            if (!piece) return [];
+
+            const color = piece[0];
+            const pseudoMoves = getPseudoLegalMoves(r, c, currentBoard);
+            const legalMoves = [];
+
+            // 체크 예방 필터: 이동 결과 자신의 왕이 공격 대상이 되는지 분석
+            for (const move of pseudoMoves) {
+                const tempBoard = cloneBoard(currentBoard);
+                // 가상 이동 적용
+                tempBoard[move[0]][move[1]] = tempBoard[r][c];
+                tempBoard[r][c] = null;
+
+                if (!isKingInCheck(color, tempBoard)) {
+                    legalMoves.push(move);
+                }
+            }
+            return legalMoves;
+        }
+
+        // 기본 경로 탐색 (체크 조건 필터 전)
+        function getPseudoLegalMoves(r, c, currentBoard) {
+            const piece = currentBoard[r][c];
+            if (!piece) return [];
+
+            const color = piece[0];
+            const type = piece[1];
+            const moves = [];
+
+            const directions = {
+                r: [[-1, 0], [1, 0], [0, -1], [0, 1]], // 룩
+                b: [[-1, -1], [-1, 1], [1, -1], [1, 1]], // 비숍
+                q: [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]], // 퀸
+                k: [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]], // 킹
+                n: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]] // 나이트
+            };
+
+            if (type === 'p') {
+                // 폰의 이동 공식
+                const dir = color === 'w' ? -1 : 1;
+                const startRow = color === 'w' ? 6 : 1;
+
+                // 전진 1칸
+                if (isValidPos(r + dir, c) && !currentBoard[r + dir][c]) {
+                    moves.push([r + dir, c]);
+                    // 전진 2칸 (첫 번째 줄에서만 가능)
+                    if (r === startRow && !currentBoard[r + 2 * dir][c]) {
+                        moves.push([r + 2 * dir, c]);
+                    }
+                }
+
+                // 대각선 캡처
+                const capCols = [c - 1, c + 1];
+                for (const col of capCols) {
+                    if (isValidPos(r + dir, col)) {
+                        const targetPiece = currentBoard[r + dir][col];
+                        if (targetPiece && !targetPiece.startsWith(color)) {
+                            moves.push([r + dir, col]);
+                        }
+                    }
+                }
+            } else if (type === 'r' || type === 'b' || type === 'q') {
+                // 선형 탐색 기물 (룩, 비숍, 퀸)
+                const dirs = directions[type];
+                for (const d of dirs) {
+                    let currR = r + d[0];
+                    let currC = c + d[1];
+                    while (isValidPos(currR, currC)) {
+                        const targetPiece = currentBoard[currR][currC];
+                        if (!targetPiece) {
+                            moves.push([currR, currC]);
+                        } else {
+                            if (!targetPiece.startsWith(color)) {
+                                moves.push([currR, currC]);
+                            }
+                            break; // 기물이 가로막고 있으면 중단
+                        }
+                        currR += d[0];
+                        currC += d[1];
+                    }
+                }
+            } else if (type === 'n' || type === 'k') {
+                // 단발성 점프/이동 기물 (나이트, 킹)
+                const dirs = directions[type];
+                for (const d of dirs) {
+                    const currR = r + d[0];
+                    const currC = c + d[1];
+                    if (isValidPos(currR, currC)) {
+                        const targetPiece = currentBoard[currR][currC];
+                        if (!targetPiece || !targetPiece.startsWith(color)) {
+                            moves.push([currR, currC]);
+                        }
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        // 해당 색상의 킹이 위협을 받고 있는지 판단
+        function isKingInCheck(color, currentBoard) {
+            // 킹 좌표 확보
+            let kingPos = null;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = currentBoard[r][c];
+                    if (piece === `${color}k`) {
+                        kingPos = [r, c];
+                        break;
+                    }
+                }
+                if (kingPos) break;
+            }
+
+            if (!kingPos) return false; // 킹이 보드에 없는 예외 (테스트용)
+
+            // 적의 모든 유사 이동을 구하고 그 중에 내 킹 좌표가 있는지 검색
+            const enemyColor = color === 'w' ? 'b' : 'w';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = currentBoard[r][c];
+                    if (piece && piece.startsWith(enemyColor)) {
+                        const pseudoMoves = getPseudoLegalMoves(r, c, currentBoard);
+                        if (pseudoMoves.some(m => m[0] === kingPos[0] && m[1] === kingPos[1])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 위치 검증 헬퍼
+        function isValidPos(r, c) {
+            return r >= 0 && r < 8 && c >= 0 && c < 8;
+        }
+
+        // 보드 객체 복제 함수
+        function cloneBoard(source) {
+            return source.map(row => [...row]);
+        }
+
+        // --- 6. 실제 움직임 실행부 ---
+        function executeMove(fromR, fromC, toR, toC) {
+            // 한 수 물르기를 위한 상태 백업 생성
+            saveStateToHistory();
+
+            const movingPiece = board[fromR][fromC];
+            const targetPiece = board[toR][toC];
+
+            // 캡처 수집 처리
+            if (targetPiece) {
+                capturedPieces[targetPiece[0]].push(targetPiece[1]);
+                updateCapturedUI();
+            }
+
+            // 기보 작성용 기록 정보 추출
+            const moveName = getMoveNotation(movingPiece, fromR, fromC, toR, toC, !!targetPiece);
+
+            // 이동 반영
+            board[toR][toC] = movingPiece;
+            board[fromR][fromC] = null;
+
+            lastMove = { from: [fromR, fromC], to: [toR, toC] };
+
+            // 폰 프로모션 승급 조건 검사 (0번 행 혹은 7번 행 도달)
+            if (movingPiece[1] === 'p' && (toR === 0 || toR === 7)) {
+                if (gameMode === 'pve' && turn === 'b') {
+                    // 컴퓨터 AI는 자동으로 항상 최고 효율인 퀸으로 프로모션 처리
+                    board[toR][toC] = `${turn}q`;
+                    finishMoveExecution(moveName + '=Q');
+                } else {
+                    // 유저 플레이어는 승급 모달 팝업 호출
+                    promotionState = { from: [fromR, fromC], to: [toR, toC], pieceName: movingPiece, notation: moveName };
+                    document.getElementById('promotion-modal').classList.remove('hidden');
+                    return; // 승급 완료까지 턴 흐름을 멈춤
+                }
+            } else {
+                finishMoveExecution(moveName);
+            }
+        }
+
+        // 프로모션 기물 선택 완료 핸들러
+        function selectPromotion(pieceType) {
+            if (!promotionState) return;
+            const { to, notation } = promotionState;
+            
+            board[to[0]][to[1]] = `${turn}${pieceType}`;
+            document.getElementById('promotion-modal').classList.add('hidden');
+            
+            const notationWithPromo = notation + '=' + pieceType.toUpperCase();
+            promotionState = null;
+            
+            finishMoveExecution(notationWithPromo);
+        }
+
+        // 이동 완료 정리 및 다음 턴 전환
+        function finishMoveExecution(moveNotation) {
+            // 기보 기록 렌더링
+            addLog(moveNotation);
+
+            // 턴 교체
+            turn = turn === 'w' ? 'b' : 'w';
+            selectedSquare = null;
+            legalMovesForSelected = [];
+            
+            renderBoard();
+            updateTurnIndicators();
+
+            // 게임 종결 상태 체크
+            checkGameStatus();
+
+            if (!isGameOver && gameMode === 'pve' && turn === 'b') {
+                // AI 동작 트리거 실행
+                setOpponentStatus('thinking');
+                setTimeout(() => {
+                    makeAIMove();
+                }, 400); // 사용자 반응을 위한 시각적 지연
+            }
+        }
+
+        // 기보 용어 작성 헬퍼 (Algebraic Notation)
+        function getMoveNotation(piece, fromR, fromC, toR, toC, isCapture) {
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+            const pieceLetter = piece[1] === 'p' ? '' : piece[1].toUpperCase();
+            const fromPos = files[fromC] + ranks[fromR];
+            const toPos = files[toC] + ranks[toR];
+            const captureSymbol = isCapture ? 'x' : '';
+
+            return `${pieceLetter}${fromPos}${captureSymbol}${toPos}`;
+        }
+
+        // --- 7. 대국 종료 감지 ---
+        function checkGameStatus() {
+            let activeColor = turn;
+            let hasMoves = false;
+
+            // 현재 턴 플레이어의 움직일 수 있는 모든 유효 경로가 하나라도 있는지 찾음
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece && piece.startsWith(activeColor)) {
+                        const moves = getLegalMoves(r, c, board);
+                        if (moves.length > 0) {
+                            hasMoves = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasMoves) break;
+            }
+
+            if (!hasMoves) {
+                isGameOver = true;
+                const inCheck = isKingInCheck(activeColor, board);
+                if (inCheck) {
+                    // 패배 색상 정의 및 선언
+                    const loserName = activeColor === 'w' ? '플레이어 (백색)' : (gameMode === 'pve' ? '인공지능 컴퓨터' : '플레이어 (흑색)');
+                    const winnerName = activeColor === 'w' ? (gameMode === 'pve' ? '인공지능 컴퓨터' : '플레이어 (흑색)') : '플레이어 (백색)';
+                    
+                    showGameOver(`체크메이트!`, `${winnerName}의 위대한 승리입니다. ${loserName}은 더 이상 방어 수단이 없습니다.`);
+                    addLog(activeColor === 'w' ? '0-1' : '1-0');
+                } else {
+                    showGameOver('스테일메이트 (무승부)', '어느 플레이어도 움직일 수 있는 경로가 없어 무승부로 종료되었습니다.');
+                    addLog('1/2-1/2');
+                }
+            }
+        }
+
+        // --- 8. 인공지능 (AI) 컴퓨터 구현 ---
+        // 쉬움(1): 무작위 정당한 수 선택
+        // 보통(2): 1단계 탐색 - 기물 점수 및 폰 가중치 즉시 평가로 가장 좋은 수 취함
+        // 어려움(3): 미니맥스 알고리즘 + 알파-베타 프루닝 적용 (2단계 깊이 정적 평가)
+        function makeAIMove() {
+            if (isGameOver) return;
+
+            // 가능한 모든 적합한 이동 모음 수집
+            const allAIMoves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece && piece.startsWith('b')) {
+                        const moves = getLegalMoves(r, c, board);
+                        for (const m of moves) {
+                            allAIMoves.push({ from: [r, c], to: m });
+                        }
+                    }
+                }
+            }
+
+            if (allAIMoves.length === 0) {
+                checkGameStatus();
+                return;
+            }
+
+            let chosenMove = null;
+
+            if (aiDifficulty === 1) {
+                // [쉬움] 랜덤 추출
+                const randIndex = Math.floor(Math.random() * allAIMoves.length);
+                chosenMove = allAIMoves[randIndex];
+            } else if (aiDifficulty === 2) {
+                // [보통] 즉시 잡을 수 있는 가장 가치 있는 기물을 캡처하거나 랜덤 가치 연산
+                chosenMove = getBestImmediateMove(allAIMoves);
+            } else {
+                // [어려움] 미니맥스 탐색 적용 (깊이 3으로 설정하여 연산 속도와 스마트함 조화)
+                chosenMove = getMinimaxMove(allAIMoves);
+            }
+
+            if (chosenMove) {
+                executeMove(chosenMove.from[0], chosenMove.from[1], chosenMove.to[0], chosenMove.to[1]);
+            }
+            setOpponentStatus('ready');
+        }
+
+        // 보통 난이도: 최선 탐색 엔진 (1단계 단순 가치 예측)
+        function getBestImmediateMove(moves) {
+            let bestScore = -Infinity;
+            let bestCandidates = [];
+
+            for (const move of moves) {
+                const [fr, fc] = move.from;
+                const [tr, tc] = move.to;
+
+                // 시뮬레이션
+                const targetPiece = board[tr][tc];
+                let score = 0;
+
+                // 잡을 수 있는 상대 기물 가치 누적
+                if (targetPiece) {
+                    score += PIECE_VALUES[targetPiece[1]] * 10;
+                }
+
+                // 이동할 위치에 대한 추가 소소한 기물-보드 가치
+                const pieceType = board[fr][fc][1];
+                score += getPiecePositionalValue(pieceType, tr, tc, 'b');
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestCandidates = [move];
+                } else if (score === bestScore) {
+                    bestCandidates.push(move);
+                }
+            }
+
+            return bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
+        }
+
+        // 어려움 난이도: 미니맥스 연산
+        function getMinimaxMove(moves) {
+            let bestMove = null;
+            let bestValue = -Infinity; // AI(Black)는 본인의 이득을 최대화하므로 -Infinity에서 시작
+            const depth = 2; // 웹 브라우저 지연 최소화를 위해 안전 깊이 2단계 설정
+
+            // 알파 베타 범위 지정
+            let alpha = -Infinity;
+            let beta = Infinity;
+
+            for (const move of moves) {
+                const tempBoard = cloneBoard(board);
+                // 가상 이동
+                const [fr, fc] = move.from;
+                const [tr, tc] = move.to;
+                tempBoard[tr][tc] = tempBoard[fr][fc];
+                tempBoard[fr][fc] = null;
+
+                // 미니맥스 하부 함수 탐색 (White의 턴이 되므로 극소화(Minimizing) 탐색 개시)
+                const boardValue = minimax(tempBoard, depth - 1, alpha, beta, false);
+
+                if (boardValue > bestValue) {
+                    bestValue = boardValue;
+                    bestMove = move;
+                }
+                alpha = Math.max(alpha, bestValue);
+            }
+
+            // 만약 미니맥스 연산 결과가 동일할 시 예외 방지를 위해 무작위 보완
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        // 미니맥스 본체 재귀 연산식
+        function minimax(currentBoard, depth, alpha, beta, isMaximizingPlayer) {
+            if (depth === 0) {
+                return evaluateBoard(currentBoard);
+            }
+
+            // 백(Player)과 흑(AI)의 가능한 움직임 탐색
+            const activeColor = isMaximizingPlayer ? 'b' : 'w';
+            const availableMoves = [];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = currentBoard[r][c];
+                    if (piece && piece.startsWith(activeColor)) {
+                        const moves = getPseudoLegalMoves(r, c, currentBoard); // 성능 가속을 위해 프루닝 기반에선 슈도 기반 수집
+                        for (const m of moves) {
+                            availableMoves.push({ from: [r, c], to: m });
+                        }
+                    }
+                }
+            }
+
+            if (availableMoves.length === 0) {
+                return evaluateBoard(currentBoard);
+            }
+
+            if (isMaximizingPlayer) {
+                let maxEval = -Infinity;
+                for (const move of availableMoves) {
+                    const nextBoard = cloneBoard(currentBoard);
+                    nextBoard[move.to[0]][move.to[1]] = nextBoard[move.from[0]][move.from[1]];
+                    nextBoard[move.from[0]][move.from[1]] = null;
+
+                    const evaluation = minimax(nextBoard, depth - 1, alpha, beta, false);
+                    maxEval = Math.max(maxEval, evaluation);
+                    alpha = Math.max(alpha, evaluation);
+                    if (beta <= alpha) break; // 가지치기
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (const move of availableMoves) {
+                    const nextBoard = cloneBoard(currentBoard);
+                    nextBoard[move.to[0]][move.to[1]] = nextBoard[move.from[0]][move.from[1]];
+                    nextBoard[move.from[0]][move.from[1]] = null;
+
+                    const evaluation = minimax(nextBoard, depth - 1, alpha, beta, true);
+                    minEval = Math.min(minEval, evaluation);
+                    beta = Math.min(beta, evaluation);
+                    if (beta <= alpha) break; // 가지치기
+                }
+                return minEval;
+            }
+        }
+
+        // 현재 판의 정적 평가 (가치 평가 공식)
+        // AI인 흑색(b) 입장에서 유리할수록 양수(+), 플레이어인 백색(w)이 유리할수록 음수(-) 반환
+        function evaluateBoard(currentBoard) {
+            let totalEvaluation = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = currentBoard[r][c];
+                    if (piece) {
+                        const color = piece[0];
+                        const type = piece[1];
+                        
+                        let value = PIECE_VALUES[type];
+                        // 위치에 따른 부가 가산점 획득
+                        value += getPiecePositionalValue(type, r, c, color);
+
+                        if (color === 'b') {
+                            totalEvaluation += value;
+                        } else {
+                            totalEvaluation -= value;
+                        }
+                    }
+                }
+            }
+            return totalEvaluation;
+        }
+
+        // 기물별 위치 가산 점수 반환
+        function getPiecePositionalValue(type, r, c, color) {
+            // 보드 행 인덱스가 백색 기준이므로 흑색 기물은 대칭 상하 전환이 필요함
+            const targetRow = color === 'w' ? r : (7 - r);
+            const targetCol = color === 'w' ? c : (7 - c);
+
+            switch (type) {
+                case 'p': return PAWN_PST[targetRow][targetCol];
+                case 'n': return KNIGHT_PST[targetRow][targetCol];
+                case 'b': return BISHOP_PST[targetRow][targetCol];
+                case 'r': return ROOK_PST[targetRow][targetCol];
+                case 'q': return QUEEN_PST[targetRow][targetCol];
+                case 'k': return KING_MIDDLE_PST[targetRow][targetCol];
+                default: return 0;
+            }
+        }
+
+        // --- 9. 유틸리티 및 UI 연동 액션 ---
+        
+        // 뒤로 한 수 돌리기 (Undo)
+        function undoMove() {
+            if (gameHistory.length === 0 || isGameOver) return;
+
+            // 만약 컴퓨터 대전 중이라면 플레이어의 이전 턴까지 총 2수 전으로 돌아갑니다.
+            if (gameMode === 'pve' && gameHistory.length >= 2) {
+                // AI 대전 2회 팝
+                const state1 = gameHistory.pop();
+                const state2 = gameHistory.pop();
+                restoreState(state2);
+            } else {
+                // 1회 팝 (PvP 대전인 경우)
+                const prevState = gameHistory.pop();
+                restoreState(prevState);
+            }
+
+            selectedSquare = null;
+            legalMovesForSelected = [];
+            renderBoard();
+            updateTurnIndicators();
+            updateCapturedUI();
+
+            // 기보 기록 마지막 줄 한 칸 삭제
+            const logContainer = document.getElementById('move-log-container');
+            if (logContainer.children.length > 0 && logContainer.querySelector('.empty-log') === null) {
+                // PvP 일 때 1줄 삭제, PvE 일 때 AI 수+플레이어 수 도합 2줄 삭제
+                if (gameMode === 'pve') {
+                    if (logContainer.lastElementChild) logContainer.removeChild(logContainer.lastElementChild);
+                    if (logContainer.lastElementChild) logContainer.removeChild(logContainer.lastElementChild);
+                } else {
+                    if (logContainer.lastElementChild) logContainer.removeChild(logContainer.lastElementChild);
+                }
+                
+                // 만약 다시 비었으면 문구 노출
+                if (logContainer.children.length === 0) {
+                    logContainer.innerHTML = `<div id="empty-log-msg" class="text-slate-500 text-center py-10 italic text-xs">대국이 시작되면 실시간 기보가 여기에 기록됩니다.</div>`;
+                    document.getElementById('move-count').innerText = "0 수";
+                } else {
+                    // 수 세기 업데이트
+                    const count = logContainer.querySelectorAll('.move-item').length;
+                    document.getElementById('move-count').innerText = `${count} 수`;
+                }
+            }
+        }
+
+        // 타임 히스토리 저장
+        function saveStateToHistory() {
+            gameHistory.push({
+                board: cloneBoard(board),
+                turn: turn,
+                capturedPieces: {
+                    w: [...capturedPieces.w],
+                    b: [...capturedPieces.b]
+                },
+                lastMove: lastMove ? { from: [...lastMove.from], to: [...lastMove.to] } : null
+            });
+        }
+
+        // 타임 히스토리 복원
+        function restoreState(state) {
+            board = cloneBoard(state.board);
+            turn = state.turn;
+            capturedPieces = {
+                w: [...state.capturedPieces.w],
+                b: [...state.capturedPieces.b]
+            };
+            lastMove = state.lastMove ? { from: [...state.lastMove.from], to: [...state.lastMove.to] } : null;
+        }
+
+        // 잡힌 기물 UI 갱신 표시
+        function updateCapturedUI() {
+            const playerCapturedEl = document.getElementById('player-captured');
+            const opponentCapturedEl = document.getElementById('opponent-captured');
+
+            playerCapturedEl.innerHTML = '';
+            opponentCapturedEl.innerHTML = '';
+
+            // 백색 플레이어가 잡힌 기물(즉, 상대방의 수집품으로 opponent 영역에 렌더)
+            capturedPieces.w.forEach(type => {
+                const badge = document.createElement('span');
+                badge.className = 'text-xs bg-slate-700 text-slate-100 rounded px-1.5 py-0.5 border border-slate-600';
+                badge.innerText = UNICODE_PIECES[`w${type}`];
+                playerCapturedEl.appendChild(badge);
+            });
+
+            // 흑색 기물이 잡힌 기물(즉, 플레이어가 획득했으므로 player 영역에 렌더)
+            capturedPieces.b.forEach(type => {
+                const badge = document.createElement('span');
+                badge.className = 'text-xs bg-amber-500/20 text-amber-400 rounded px-1.5 py-0.5 border border-amber-500/20';
+                badge.innerText = UNICODE_PIECES[`b${type}`];
+                opponentCapturedEl.appendChild(badge);
+            });
+        }
+
+        // 실시간 대국 진행 현황판 갱신
+        function updateTurnIndicators() {
+            const playerPulse = document.getElementById('player-pulse');
+            const playerText = document.getElementById('player-status-text');
+            const opponentPulse = document.getElementById('opponent-pulse');
+            const opponentText = document.getElementById('opponent-status-text');
+
+            if (turn === 'w') {
+                playerPulse.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                playerText.innerText = "내 차례";
+                playerText.className = "text-emerald-400 font-bold";
+
+                opponentPulse.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+                opponentText.innerText = "대기 중";
+                opponentText.className = "text-slate-400 font-normal";
+            } else {
+                playerPulse.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+                playerText.innerText = "대기 중";
+                playerText.className = "text-slate-400 font-normal";
+
+                opponentPulse.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+                opponentText.innerText = gameMode === 'pve' ? "생각 중..." : "상대 차례";
+                opponentText.className = "text-rose-400 font-bold";
+            }
+        }
+
+        // AI 행동 상태 메세지 변경
+        function setOpponentStatus(status) {
+            const pulse = document.getElementById('opponent-pulse');
+            const text = document.getElementById('opponent-status-text');
+
+            if (status === 'thinking') {
+                pulse.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-bounce";
+                text.innerText = "AI 연산 중...";
+                text.className = "text-amber-400 font-bold";
+            } else {
+                updateTurnIndicators();
+            }
+        }
+
+        // 실시간 기보 로그에 삽입
+        function addLog(notation) {
+            const container = document.getElementById('move-log-container');
+            const emptyMsg = document.getElementById('empty-log-msg');
+            if (emptyMsg) {
+                container.removeChild(emptyMsg);
+            }
+
+            // 기보 아이템 제작
+            const currentItems = container.querySelectorAll('.move-item').length;
+            const stepNum = Math.floor(currentItems / 2) + 1;
+
+            const logRow = document.createElement('div');
+            logRow.className = "move-item flex items-center justify-between py-1.5 px-3 rounded hover:bg-slate-700/50 transition";
+            
+            // 백의 한 수 혹은 흑의 한 수 구분 구조화
+            if (currentItems % 2 === 0) {
+                logRow.innerHTML = `
+                    <span class="text-slate-500 font-mono text-xs w-10">${stepNum}.</span>
+                    <span class="text-amber-400 font-semibold text-xs flex-1 text-left">${notation}</span>
+                    <span id="black-sub-${stepNum}" class="text-slate-400 text-xs flex-1 text-right">-</span>
+                `;
+                container.appendChild(logRow);
+            } else {
+                const targetRow = document.getElementById(`black-sub-${stepNum}`);
+                if (targetRow) {
+                    targetRow.innerText = notation;
+                    targetRow.className = "text-rose-400 font-semibold text-xs flex-1 text-right";
+                }
+            }
+
+            // 스크롤 최하단 유지
+            container.scrollTop = container.scrollHeight;
+
+            // 기보 개수 출력
+            document.getElementById('move-count').innerText = `${currentItems + 1} 수`;
+        }
+
+        function clearLogs() {
+            const container = document.getElementById('move-log-container');
+            container.innerHTML = `<div id="empty-log-msg" class="text-slate-500 text-center py-10 italic text-xs">대국이 시작되면 실시간 기보가 여기에 기록됩니다.</div>`;
+            document.getElementById('move-count').innerText = "0 수";
+        }
+
+        // 게임 모드 변경 적용
+        function changeMode(mode) {
+            if (gameMode === mode) return;
+            gameMode = mode;
+
+            const pveBtn = document.getElementById('mode-pve');
+            const pvpBtn = document.getElementById('mode-pvp');
+            const diffSection = document.getElementById('difficulty-section');
+            const badge = document.getElementById('game-mode-badge');
+            const opponentName = document.getElementById('opponent-name');
+            const opponentAvatar = document.getElementById('opponent-avatar');
+
+            if (mode === 'pve') {
+                pveBtn.className = "bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1";
+                pvpBtn.className = "bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1";
+                diffSection.classList.remove('hidden');
+                opponentName.innerText = getAIDifficultyName();
+                opponentAvatar.innerHTML = `<i class="fa-solid fa-robot"></i>`;
+                opponentAvatar.className = "w-10 h-10 rounded-full bg-rose-600 flex items-center justify-center text-lg font-bold shadow-md";
+            } else {
+                pveBtn.className = "bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1";
+                pvpBtn.className = "bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center space-x-1";
+                diffSection.classList.add('hidden');
+                badge.innerText = "로컬 2인 플레이";
+                badge.className = "bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-semibold";
+                opponentName.innerText = "플레이어 (흑색)";
+                opponentAvatar.innerHTML = `<i class="fa-solid fa-user-friends"></i>`;
+                opponentAvatar.className = "w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-lg font-bold shadow-md";
+            }
+
+            resetGame();
+        }
+
+        // 난이도 명칭 추출
+        function getAIDifficultyName() {
+            switch(aiDifficulty) {
+                case 1: return "AI 컴퓨터 (쉬움)";
+                case 2: return "AI 컴퓨터 (보통)";
+                case 3: return "AI 컴퓨터 (어려움)";
+            }
+        }
+
+        // AI 난이도 변경 핸들러
+        function changeDifficulty(level) {
+            aiDifficulty = level;
+
+            // UI 등급 강조
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`diff-${i}`);
+                if (i === level) {
+                    btn.className = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold py-1.5 px-2 rounded-lg text-[10px] transition";
+                } else {
+                    btn.className = "bg-slate-700 text-slate-300 font-bold py-1.5 px-2 rounded-lg text-[10px] transition hover:bg-slate-650";
+                }
+            }
+
+            const badge = document.getElementById('game-mode-badge');
+            if (gameMode === 'pve') {
+                const diffName = getAIDifficultyName();
+                badge.innerText = diffName;
+                document.getElementById('opponent-name').innerText = diffName;
+            }
+        }
+
+        // 게임 판도 초기화 리셋
+        function resetGame() {
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            initGame();
+        }
+
+        // 게임 오버 연출 팝업 표출
+        function showGameOver(title, desc) {
+            document.getElementById('gameover-title').innerText = title;
+            document.getElementById('gameover-desc').innerText = desc;
+            
+            // 무승부 혹은 승리에 따른 아이콘 변경
+            const icon = document.getElementById('gameover-icon');
+            if (title.includes('승리')) {
+                icon.className = "fa-solid fa-trophy text-amber-400 text-4xl";
+            } else {
+                icon.className = "fa-solid fa-scale-balanced text-slate-400 text-4xl";
+            }
+            
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+        }
+
+        // --- 10. UI 업데이트 헬퍼 ---
+        function updateModeUI() {
+            const badge = document.getElementById('game-mode-badge');
+            if (gameMode === 'pve') {
+                badge.innerText = getAIDifficultyName();
+                badge.className = "bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-semibold";
+            } else {
+                badge.innerText = "로컬 2인 플레이";
+                badge.className = "bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-semibold";
+            }
+        }
+    </script>
+</body>
+</html>

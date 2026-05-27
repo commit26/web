@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>고1 핵심 과목 완벽 정리 (통합과학, 통합사회, 한국사)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts (Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- KaTeX (수학/과학 기호 렌더링용) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* 수식 폰트 깨짐 보정 및 미세 조정 */
+    .katex {
+      font-size: 1.05em;
+      line-height: 1;
+      text-indent: 0;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+
+  <!-- 헤더 영역 -->
+  <header class="bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-8 text-center md:text-left md:flex md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">핵심 과목 완벽 정리</h1>
+        <p class="mt-2 text-indigo-100 font-light">통합과학 • 통합사회 • 한국사 [1학기 & 2학기 전범위 요점 노트]</p>
+      </div>
+      <div class="mt-4 md:mt-0 flex justify-center gap-2">
+        <span class="bg-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">🎓 1학년 전범위</span>
+        <span class="bg-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">🔍 고득점 요약</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8">
+    
+    <!-- 과목 선택 탭 (대시보드 형태) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <!-- 통합과학 탭 버튼 -->
+      <button onclick="switchTab('science')" id="btn-science" class="tab-btn flex items-center justify-between p-5 rounded-2xl bg-white border-2 border-indigo-500 shadow-lg shadow-indigo-100 text-left transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center gap-4">
+          <div class="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+            <i data-lucide="atom" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">통합과학</h3>
+            <p class="text-xs text-slate-500 mt-0.5">물질, 시스템, 변화, 에너지</p>
+          </div>
+        </div>
+        <span class="text-indigo-600 text-xs font-bold px-2 py-1 bg-indigo-50 rounded-lg">활성화</span>
+      </button>
+
+      <!-- 통합사회 탭 버튼 -->
+      <button onclick="switchTab('society')" id="btn-society" class="tab-btn flex items-center justify-between p-5 rounded-2xl bg-white border-2 border-transparent shadow-md hover:shadow-lg text-left transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center gap-4">
+          <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+            <i data-lucide="globe" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">통합사회</h3>
+            <p class="text-xs text-slate-500 mt-0.5">인간, 사회, 환경, 평화</p>
+          </div>
+        </div>
+        <span class="text-slate-400 text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg">대기</span>
+      </button>
+
+      <!-- 한국사 탭 버튼 -->
+      <button onclick="switchTab('history')" id="btn-history" class="tab-btn flex items-center justify-between p-5 rounded-2xl bg-white border-2 border-transparent shadow-md hover:shadow-lg text-left transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center gap-4">
+          <div class="p-3 bg-amber-100 text-amber-600 rounded-xl">
+            <i data-lucide="scroll" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">한국사</h3>
+            <p class="text-xs text-slate-500 mt-0.5">우리 역사의 기원과 발전</p>
+          </div>
+        </div>
+        <span class="text-slate-400 text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg">대기</span>
+      </button>
+    </div>
+
+    <!-- -----------------------------------------
+         1. 통합과학 콘텐츠 영역
+    ----------------------------------------- -->
+    <div id="content-science" class="content-section space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-indigo-100">
+        <div class="flex items-center gap-3">
+          <i data-lucide="atom" class="w-7 h-7 text-indigo-600"></i>
+          <h2 class="text-2xl font-bold text-slate-800">통합과학 핵심 요약</h2>
+        </div>
+        <!-- 1부 / 2부 서브 탭 -->
+        <div class="flex bg-slate-200/80 p-1 rounded-xl self-start md:self-auto">
+          <button onclick="switchSubTab('science', 1)" id="sub-science-1" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg bg-white text-indigo-600 shadow-sm transition-all">1부 요약 (1학기)</button>
+          <button onclick="switchSubTab('science', 2)" id="sub-science-2" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg text-slate-600 hover:text-slate-950 transition-all">2부 요약 (2학기)</button>
+        </div>
+      </div>
+
+      <!-- 과학 1부 상세 내용 -->
+      <div id="science-part-1" class="sub-content space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 I-1</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">물질의 규칙성과 원소의 생성</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">우주 초기 원소 생성:</strong> 빅뱅($138$억 년 전) 직후 기본 입자(쿼크, 경입자)가 형성되었고, 약 3분 후 수소와 헬륨 원자핵이 $3:1$의 질량비로 형성되었습니다. 38만 년 후 우주 온도 $3000\text{K}$일 때 최초의 중성 원자가 탄생하며 우주 배경 복사가 방출되었습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">별의 진화와 무거운 원소:</strong> 성간 물질이 뭉쳐 원시별이 만들어지고 주계열성에 도달하면 수소 핵융합이 시작됩니다. 철($Fe$)까지의 원소는 초거성 단계의 내부 핵융합으로 생성되며, 철보다 무거운 원소(구리, 납, 우라늄 등)는 초신성 폭발 시 발생하는 엄청난 에너지에 의해 생성됩니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">태양계와 지구의 원소:</strong> 태양계 성운에서 지구가 형성되는 과정에서 가벼운 기체 성분은 외곽으로 밀려나고, 무거운 금속 성분(철, 니켈 등)은 지구 중심부(핵)로 가라앉아 층상 구조를 이루었습니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 I-2</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">화학 결합과 주기율</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">주기율표의 역사와 구성:</strong> 멘델레예프는 원자량 순으로, 모즐리는 원자번호(양성자수) 순으로 정리했습니다. 세로줄인 <span class="text-indigo-600 font-semibold">족</span>은 화학적 성질이 비슷한 원소들(동족 원소는 최외각 전자 수가 같음)이고, 가로줄인 <span class="text-indigo-600 font-semibold">주기</span>는 전자가 배치된 전자 껍질의 수입니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">이온 결합과 공유 결합:</strong> 
+                금속 원소와 비금속 원소 간에 전자가 이동하여 형성되는 <span class="text-indigo-600 font-semibold">이온 결합</span>(예: $NaCl$, 고체 상태에서 전류 안 흐름, 수용액에선 흐름)과 비금속 원소끼리 전자를 서로 공유하여 옥텟 규칙을 만족하는 <span class="text-indigo-600 font-semibold">공유 결합</span>(예: $H_2O$, 액체 및 고체 모두 전류 흐르지 않음)을 비교하는 것이 필수적입니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 II-1</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">역학적 시스템 (중력과 안전)</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">중력과 등가속도 운동:</strong> 지구상의 물체는 질량에 비례하는 크기의 중력($F = mg$)을 상시 받습니다. 공기 저항이 없을 때 모든 물체는 질량에 관계없이 연직 방향으로 매초 약 $9.8\text{m/s}$씩 속도가 빨라지는 자유 낙하 운동을 합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">수평으로 던진 물체의 운동:</strong> 수평 방향으로는 외력이 작용하지 않아 등속 직선 운동을 하고, 연직 방향으로는 중력에 의해 자유 낙하 운동을 동시 진행하므로 포물선 궤도를 그리며 운동합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">운동량과 충격량:</strong> 운동량 $p = mv$, 충격량 $I = F \Delta t = \Delta p$ 입니다. 충돌 사고 발생 시 에어백이나 범퍼는 충돌하는 시간($\Delta t$)을 늘려 사람이 받는 평균 충격력($F$)의 크기를 대폭 낮춤으로써 부상을 경감시킵니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 II-2</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">지구 시스템 & 생명 시스템 기본</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">지구 시스템의 구성:</strong> 기권(온도 분포에 따라 대류권, 성층권, 중간권, 열권), 수권(혼합층, 수온약층, 심해층), 지권(지각, 맨틀, 외핵, 내핵), 생물권, 외권이 상호 유기적으로 작용합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">판구조론과 지구조 운동:</strong> 맨틀의 대류로 판들이 움직이며, 경계에 따라 발산형(해령, 지구대), 수렴형(해구, 습곡산맥), 보존형(변환 단층) 경계가 나타납니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">세포막의 물질 수송:</strong> 인지질 이중층과 막단백질로 구성되며 선택적 투과성을 지닙니다. 기체 분자처럼 크기가 작고 전하가 없는 물질은 막을 직접 통과하는 <span class="text-indigo-600 font-semibold">단순 확산</span>을 하고, 전하를 띤 이온 등은 막단백질을 통한 <span class="text-indigo-600 font-semibold">촉진 확산</span>을 합니다. 세포막을 사이에 두고 농도 구배에 따라 물이 이동하는 현상은 <span class="text-indigo-600 font-semibold">삼투 현상</span>입니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 과학 2부 상세 내용 (초기 숨김) -->
+      <div id="science-part-2" class="sub-content space-y-6 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 III-1</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">화학 반응 (산화 환원과 중화 반응)</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">산소와 전자의 이동에 의한 산화 환원:</strong> 산소와 결합하거나 전자를 잃는 반응을 <span class="text-indigo-600 font-semibold">산화</span>, 산소를 잃거나 전자를 얻는 반응을 <span class="text-indigo-600 font-semibold">환원</span>이라고 하며, 이 두 반응은 항상 동시에 발생합니다. (예: 광합성, 철의 제련, 화석 연료의 연소 등)
+              </li>
+              <li>
+                <strong class="text-slate-800">산과 염기:</strong> 산은 물에 녹아 수소 이온($H^+$)을 내놓아 신맛이 나고 금속과 반응해 수소 기체를 만들며, 염기는 물에 녹아 수산화 이온($OH^-$)을 내놓아 단백질을 녹이고 쓴맛이 나는 공통된 특성을 보입니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">중화 반응의 메커니즘:</strong> 산의 $H^+$과 염기의 $OH^-$이 정확히 $1:1$의 개수비로 결합하여 중화열과 함께 물($H_2O$)을 생성합니다. 중화점 도달 시 전류 세기는 최소가 되고 온도는 최고치에 이릅니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 III-2</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">생물 다양성과 진화</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">지질 시대와 생물상:</strong> 표준 화석(생존 기간은 짧고 분포 면적은 넓음 - 예: 삼엽충, 암모나이트, 공룡)과 시상 화석(생존 기간은 길고 특정 기후 환경을 지시 - 예: 고사리, 산호)을 통해 지질 시대 환경과 대멸종 역사를 탐구합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">진화론과 자연선택:</strong> 같은 종 내 개체들 사이에 형질 차이인 <span class="text-indigo-600 font-semibold">변이</span>가 존재하며, 먹이 부족과 환경 변화 등 '생존 경쟁' 하에서 환경에 적합한 개체가 더 많이 살아남아 형질을 유전시키는 <span class="text-indigo-600 font-semibold">자연선택</span> 과정을 통해 진화가 이루어집니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">생물 다양성의 3가지 수준:</strong> <span class="text-indigo-600 font-semibold">유전적 다양성</span>(같은 종 내 다른 유전자 구성), <span class="text-indigo-600 font-semibold">종 다양성</span>(특정 지역의 종 수와 비율), <span class="text-indigo-600 font-semibold">생태계 다양성</span>(서식지의 종류)으로 구분되며 모두 보존 가치가 높습니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 IV-1</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">생태계와 환경의 평형</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">생태계 구성원과 상호 작용:</strong> 비생물적 요인(빛, 온도, 물, 토양)과 생물적 요인(생산자, 소비자, 분해자)이 영향을 주고받습니다. 특히 일조 시간에 따른 동물의 생식 주기 변화나 빛의 세기에 따른 식물의 이파리 발달 등 작용·반작용 원리가 잘 나옵니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">생태계 평형:</strong> 먹이 그물이 복잡하게 얽혀 있을수록 특정 생물이 멸종해도 대체 생물이 있어 평형 유지가 용이합니다. 일시적으로 일차 소비자가 증가해도 '생산자 감소 $\rightarrow$ 일차 소비자 감소 $\rightarrow$ 생태계 평형 복귀'의 자정 작용을 거치게 됩니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded">대단원 IV-2</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">에너지 생성과 전력 수송</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">전자기 유도와 발전:</strong> 코일 주위에서 자석이 움직이거나 자석 주위에서 코일이 회전하는 등 코일을 통과하는 자기장의 변화로 유도 전류가 흐르는 현상입니다. 기학학적인 역학 에너지가 전기에너지로 변환되는 터빈 발전기의 근본 원리입니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">전력 수송과 손실:</strong> 발전소에서 공급되는 전력 $P = VI$ 입니다. 송전선에서 열로 소실되는 손실 전력 $P_{\text{loss}} = I^2 R$ 을 낮추기 위해, 송전 전압($V$)을 $n$배로 대폭 높여 송전선에 흐르는 전류($I$)를 $1/n$배로 줄임으로써 전력 유실을 최소화하는 원리를 터득해야 합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">신에너지원:</strong> 화석 연료를 대체하는 친환경 에너지로서 태양광 발전, 풍력 발전, 그리고 수소를 원료로 하여 전기에너지를 직접 생산하는 친환경 <span class="text-indigo-600 font-semibold">수소 연료 전지</span>의 지속 가능한 개발을 강조합니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- -----------------------------------------
+         2. 통합사회 콘텐츠 영역
+    ----------------------------------------- -->
+    <div id="content-society" class="content-section space-y-6 hidden">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-emerald-100">
+        <div class="flex items-center gap-3">
+          <i data-lucide="globe" class="w-7 h-7 text-emerald-600"></i>
+          <h2 class="text-2xl font-bold text-slate-800">통합사회 핵심 요약</h2>
+        </div>
+        <!-- 1부 / 2부 서브 탭 -->
+        <div class="flex bg-slate-200/80 p-1 rounded-xl self-start md:self-auto">
+          <button onclick="switchSubTab('society', 1)" id="sub-society-1" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg bg-white text-emerald-600 shadow-sm transition-all">1부 요약 (1학기)</button>
+          <button onclick="switchSubTab('society', 2)" id="sub-society-2" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg text-slate-600 hover:text-slate-950 transition-all">2부 요약 (2학기)</button>
+        </div>
+      </div>
+
+      <!-- 사회 1부 상세 내용 -->
+      <div id="society-part-1" class="sub-content space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-100 transition-colors">
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 I & II</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">통합적 관점과 정주 환경</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">4대 관점의 통합:</strong> 사회 현상을 관찰할 때 역사적 기원을 짚는 <span class="text-emerald-600 font-semibold">시간적 관점</span>, 지리적 공간 특징을 분석하는 <span class="text-emerald-600 font-semibold">공간적 관점</span>, 제도와 지배적 사회구조를 읽어내는 <span class="text-emerald-600 font-semibold">사회적 관점</span>, 행위 규범과 가치를 비판해보는 <span class="text-emerald-600 font-semibold">윤리적 관점</span>의 융합이 필요합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">세계 기후 대와 의식주 문화:</strong> 열대(고상가옥, 얇은 의복), 건조(흙벽돌집, 오아시스 농업), 온대(다양한 농업), 한대 및 냉대(동토층 기초공사, 침엽수림 임업) 기후에 따른 인류 정착 형태의 차이를 구분합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">인간중심주의 vs 생태중심주의:</strong> 베이컨, 데카르트의 도구적 자연관은 무분별한 개발을 초래하여 레오폴드의 대지 윤리 등 전일주의적 생태 가치관과의 공생을 적극적으로 모색하는 방향으로 나아갑니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-100 transition-colors">
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 III & IV</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">생활 공간의 변화와 인권 보장</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">산업화와 도시화:</strong> 일자리를 찾아 농촌 인구가 도시로 대거 이동하는 이촌향도 현상과 이로 파생된 도시 연담화, 주택 및 인프라의 절대 부족, 교외화 현상 및 도심 공동화 현상에 따른 주택 지구 재개발 과제들이 중심이 됩니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">정보화 사회의 역기능:</strong> 스마트 라이프 시대가 도래했으나 인터넷 중독, 개인정보 불법 유출과 명예 훼손, 정보 취약 계층의 심리적 박탈과 불평등(정보 격차) 문제를 예방하기 위한 정보 윤리 준수가 절실합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">시민혁명과 현대 인권의 확장:</strong> 영국 명예혁명, 미국 독립혁명, 프랑스 대혁명을 이끈 1세대 인권(자유, 평등)에서 산업혁명 극복을 위한 2세대 인권(사회권, 생존권), 그리고 식민주의 및 글로벌 난관 극복을 위한 3세대 인권(연대권, 자결권)으로 전개된 역사를 이해해야 합니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 사회 2부 상세 내용 (초기 숨김) -->
+      <div id="society-part-2" class="sub-content space-y-6 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-100 transition-colors">
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 V & VI</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">시장 경제와 사회 정의</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">합리적 선택과 경제 주체:</strong> 편익(만족감)이 기회비용(포기한 대안 중 최대 가치 + 실제 지출액)보다 큰 대안을 택하는 것이 원칙입니다. 기업가 정신, 노동자의 권리, 소비자의 주권이 균형을 이뤄야 합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">시장 실패의 유형:</strong> 독과점 기업의 횡포, 공해 물질 배출과 같은 <span class="text-emerald-600 font-semibold">외부 효과</span>, 치안이나 가로등처럼 비용을 내지 않고도 혜택을 누릴 수 있어 민간 기업이 공급하지 않는 <span class="text-emerald-600 font-semibold">공공재 부족</span> 현상이 발생하며, 이를 바로잡기 위해 정부의 시장 개입이 수반됩니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">정의관과 불평등 극복:</strong> 롤스의 공정으로서의 정의(최소 수혜자에게 최대의 혜택을 제공하는 차등의 원칙 등)를 근거로 사회적 약자 보호(기초생활보장, 소수자 우대 정책) 제도를 정량적으로 고안합니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-100 transition-colors">
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 VII & VIII & IX</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">문화 다양성, 세계화와 미래 사회</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">문화 상대주의의 본질:</strong> 자기 문화를 절대적 기준으로 삼는 자문화 중심주의나 타인의 문화를 맹목적으로 받드는 문화 사대주의를 경계하고, 역사적 맥락에 기반하여 이해하려는 문화 상대주의적 자세가 기본입니다. 단, 인류의 존엄성을 해치는 극단적 상대주의(명예살인, 전족 등)는 수용할 수 없습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">세계화와 다국적 기업:</strong> 세계가 일일 생활권으로 통합되며 국제 분업이 정교해지고 있으나, 주변부 개발도상국의 경제적 예속과 환경오염, 지역 문화 고유성 훼손이라는 갈등도 공존합니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">지속 가능한 발전과 인구:</strong> 저출산·고령화 문제와 자원 고갈 문제를 해결하고, 환경을 보존하면서도 미래 세대의 생존 여건을 잠식하지 않는 범위 내에서 경제성장을 지속하는 친환경 도시 설계가 우리의 과제입니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- -----------------------------------------
+         3. 한국사 콘텐츠 영역
+    ----------------------------------------- -->
+    <div id="content-history" class="content-section space-y-6 hidden">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-amber-100">
+        <div class="flex items-center gap-3">
+          <i data-lucide="scroll" class="w-7 h-7 text-amber-600"></i>
+          <h2 class="text-2xl font-bold text-slate-800">한국사 핵심 요약</h2>
+        </div>
+        <!-- 1부 / 2부 서브 탭 -->
+        <div class="flex bg-slate-200/80 p-1 rounded-xl self-start md:self-auto">
+          <button onclick="switchSubTab('history', 1)" id="sub-history-1" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg bg-white text-amber-600 shadow-sm transition-all">1부 요약 (전근대~개항)</button>
+          <button onclick="switchSubTab('history', 2)" id="sub-history-2" class="sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg text-slate-600 hover:text-slate-950 transition-all">2부 요약 (일제~현대)</button>
+        </div>
+      </div>
+
+      <!-- 역사 1부 상세 내용 -->
+      <div id="history-part-1" class="sub-content space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-amber-100 transition-colors">
+            <span class="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 I & II</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">전근대사의 흐름 (고조선 ~ 조선 후기)</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">삼국의 도약과 불교 공인:</strong> 삼국(고구려, 백제, 신라)은 대내적으로 불교를 공인하여 백성의 사상을 결집하고, 율령 반포와 왕위 세습제를 확립하여 전제 군주정으로 도약했습니다. 삼국을 통일한 신라와 고구려 유민이 건국한 해동성국 발해가 남북국 시대를 장식했습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">고려의 유교 정비와 사대부:</strong> 고려는 태조의 통치 철학을 광종의 과거제 및 노비안검법으로 구체화하고, 성종 대에 이르러 3성 6부제 및 유교 정치를 확립했습니다. 후기 원 간섭기를 경과하며 성리학을 수용한 신진사대부가 등장하여 조선 왕조 개창의 동량이 되었습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">조선의 제도적 완비와 개편:</strong> 《경국대전》으로 성리학적 법치 제도를 완비하였으나, 사화의 발생 및 임진·병자 양란으로 큰 혼란을 겪었습니다. 조선 후기 영·정조 대의 탕평책, 군역 폐단을 덜어낸 균역법, 토지 소유가 아닌 수확량 기준으로 세금을 징수하는 대동법 시행 등으로 경제적 변화가 수반되었습니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-amber-100 transition-colors">
+            <span class="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 III</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">근대 개항 및 근대국가 수립 노력</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">개항과 대외 개방적 조약:</strong> 흥선대원군은 쇄국 및 척화비 건립으로 서구 자본주의 세력 유입을 전면 제지하고자 노력했으나, 1876년 강화도 조약 체결로 무역 개항을 선언했습니다. 이는 무관세, 치외법권, 해안 측량권을 승인한 극도로 불평등한 조약이었습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">개혁론의 분화와 민중 항쟁:</strong> 급진 개화파의 갑신정변(1884), 아래로부터의 변혁을 추구한 동학 농민 운동(1894), 그리고 자주독립과 의회 설립을 목표로 한 독립협회 활동이 고종의 대한제국 선포와 광무개혁으로 귀착되었습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">국권 수호 운동:</strong> 을사늑약(1905)에 대항해 무장 항쟁을 펼친 을미·을사·정미의병의 활동과, 대성학교 및 오산학교를 짓고 신민회 등의 비밀결사를 꾸려 교육과 식산흥업을 일군 애국 계몽 운동이 전개되었습니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 역사 2부 상세 내용 (초기 숨김) -->
+      <div id="history-part-2" class="sub-content space-y-6 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-amber-100 transition-colors">
+            <span class="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 IV</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">일제 식민지 지배와 민족 해방 운동</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">일제 식민 지배 정책의 변천:</strong> 헌병 무단 통치(1910년대, 토지조사사업) $\rightarrow$ 기만적인 문화 통치(1920년대, 산미증식계획) $\rightarrow$ 대륙 침략을 위한 인적·물적 수탈 중심의 민족 말살 통치(1930년대 이후, 신사참배 강요, 병참기지화 정책)로 탄압이 격화되었습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">3·1 운동과 대한민국 임시정부:</strong> 1919년 전 민족적 독립 만세 운동인 3·1 운동이 일어나 세계에 한민족의 의지를 선포하였고, 그 결과 최초의 민주공화정 형태인 대한민국 임시정부가 수립되어 항일 외교와 독립 자금 마련 등의 구심점 역할을 했습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">국내외 항일 민족 운동:</strong> 국외에서는 만주와 연해주를 무대로 독립군 조직(청산리 대첩, 봉오동 전투)이 치열한 게릴라전을 펼쳤고, 국내에서는 신간회의 창설(좌우합작)을 통해 광주 학생 항일 운동 등의 민중 활동을 기획·지원했습니다.
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-amber-100 transition-colors">
+            <span class="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded">주요 단원 V & VI</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2 mb-3">현대사 (정부 수립과 민주화 발전)</h3>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed">
+              <li>
+                <strong class="text-slate-800">대한민국 정부 수립과 시련:</strong> 1945년 8월 15일 해방을 맞았으나 미·소 신탁 통치를 둘러싼 대립과 모스크바 3상 회의 논란을 거쳐 남북 분단이 고착화되었습니다. 1948년 5월 10일 총선거를 거쳐 대한민국 정부가 공식 수립되었으나, 곧이어 1950년 6·25 전쟁의 민족적 비극을 통과해야 했습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">민주화 운동의 대서사시:</strong> 독재 정권에 항거하여 일어난 4·19 혁명(이승만 퇴진), 5·18 민주화운동(군부 독재 종식 요구), 그리고 대통령 직선제를 쟁취해 낸 1987년 6월 민주 항쟁을 거치며 대한민국은 완전한 현대 민주국가의 기틀을 확립했습니다.
+              </li>
+              <li>
+                <strong class="text-slate-800">한강의 기적과 통일 지향:</strong> 전쟁 폐허 위에서 중화학 공업 위주의 눈부신 고도 경제 발전을 성취하는 한편, 7·4 남북 공동 선언(1972)과 남북 기본 합의서(1991), 6·15 공동 선언(2000) 등 한반도 평화 협력과 평화 통일을 위한 끈질긴 대화와 교류 시도들이 지속되었습니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 하단 푸터 및 작성자 정보 -->
+  <footer class="bg-slate-900 text-slate-400 py-8 mt-12 border-t border-slate-800 text-center text-sm">
+    <div class="max-w-6xl mx-auto px-4 space-y-2">
+      <p class="font-semibold text-slate-300">고등학교 1학년 필수 탐구 과목 핵심 완벽 백과</p>
+      <p>본 요점 자료는 수능 및 모의고사의 출제 빈도가 매우 높은 대주제를 모아 압축 요약한 핵심 노트입니다.</p>
+      <p>© 2026 Core Study Guide. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- 우측 하단 고정: '메인으로 돌아가기' 버튼 -->
+  <div class="fixed bottom-6 right-6 z-50">
+    <button onclick="resetToHome()" class="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-950 text-white px-5 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border border-slate-700/50 group">
+      <i data-lucide="home" class="w-5 h-5 text-indigo-400 group-hover:animate-pulse"></i>
+      <span class="font-medium text-sm tracking-wide">메인으로 돌아가기</span>
+    </button>
+  </div>
+
+  <!-- JavaScript 소스코드 (탭 및 서브 탭 전환 로직) -->
+  <script>
+    // Lucide 아이콘 생성
+    lucide.createIcons();
+
+    /**
+     * KaTeX 수식 렌더링 함수 (단일 $ 기호 딜리미터 적용)
+     */
+    function renderMathematicalFormulas() {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    // 초기 화면 로드 시 즉시 수식 렌더링
+    window.addEventListener('DOMContentLoaded', () => {
+      renderMathematicalFormulas();
+    });
+
+    /**
+     * 메인으로 완전히 돌아가는 리셋 함수
+     */
+    function resetToHome() {
+      // 1. 가장 기본 탭인 '통합과학'으로 즉시 변경
+      switchTab('science');
+      // 2. 통합과학 내의 서브 탭도 1학기(1부) 요약 상태로 초기화
+      switchSubTab('science', 1);
+      // 3. 페이지의 최상단으로 부드럽게 스크롤
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * 메인 과목 탭 전환 함수
+     */
+    function switchTab(subject) {
+      // 1. 모든 메인 과목 콘텐츠 숨기기
+      const sections = document.querySelectorAll('.content-section');
+      sections.forEach(sec => sec.classList.add('hidden'));
+
+      // 2. 선택한 과목 표시
+      const activeSection = document.getElementById(`content-${subject}`);
+      if (activeSection) {
+        activeSection.classList.remove('hidden');
+      }
+
+      // 3. 메인 과목 탭 버튼 디자인 초기화 및 복구
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      tabButtons.forEach(btn => {
+        btn.classList.remove('border-indigo-500', 'border-emerald-500', 'border-amber-500', 'shadow-lg');
+        btn.classList.add('border-transparent', 'shadow-md');
+        
+        // 우측 뱃지 비활성화 텍스트로 복구
+        const badge = btn.querySelector('span');
+        if (badge) {
+          badge.className = "text-slate-400 text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg";
+          badge.textContent = "대기";
+        }
+      });
+
+      // 4. 클릭한 탭의 전용 색상 테두리 부여 및 뱃지 업데이트
+      const activeBtn = document.getElementById(`btn-${subject}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'shadow-md');
+        activeBtn.classList.add('shadow-lg');
+        
+        const badge = activeBtn.querySelector('span');
+        if (badge) {
+          badge.textContent = "활성화";
+        }
+
+        if (subject === 'science') {
+          activeBtn.classList.add('border-indigo-500', 'shadow-indigo-100');
+          if (badge) badge.className = "text-indigo-600 text-xs font-bold px-2 py-1 bg-indigo-50 rounded-lg";
+        } else if (subject === 'society') {
+          activeBtn.classList.add('border-emerald-500', 'shadow-emerald-100');
+          if (badge) badge.className = "text-emerald-600 text-xs font-bold px-2 py-1 bg-emerald-50 rounded-lg";
+        } else if (subject === 'history') {
+          activeBtn.classList.add('border-amber-500', 'shadow-amber-100');
+          if (badge) badge.className = "text-amber-600 text-xs font-bold px-2 py-1 bg-amber-50 rounded-lg";
+        }
+      }
+
+      // 탭 전환 후 수식 실시간 렌더링
+      renderMathematicalFormulas();
+    }
+
+    /**
+     * 1부 / 2부 서브 탭 전환 함수
+     */
+    function switchSubTab(subject, partNumber) {
+      // 1. 해당 과목 내의 1부, 2부 콘텐츠 식별
+      const part1 = document.getElementById(`${subject}-part-1`);
+      const part2 = document.getElementById(`${subject}-part-2`);
+      
+      // 2. 해당 과목 내의 버튼들 식별
+      const btn1 = document.getElementById(`sub-${subject}-1`);
+      const btn2 = document.getElementById(`sub-${subject}-2`);
+
+      // 3. 테마 컬러 매핑
+      let themeColorClass = "text-indigo-600";
+      if (subject === 'society') themeColorClass = "text-emerald-600";
+      if (subject === 'history') themeColorClass = "text-amber-600";
+
+      // 4. 온/오프 상태 처리
+      if (partNumber === 1) {
+        part1.classList.remove('hidden');
+        part2.classList.add('hidden');
+        
+        // 버튼 1 활성화 스타일
+        btn1.className = `sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg bg-white shadow-sm transition-all ${themeColorClass}`;
+        // 버튼 2 비활성화 스타일
+        btn2.className = `sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg text-slate-600 hover:text-slate-950 transition-all`;
+      } else {
+        part1.classList.add('hidden');
+        part2.classList.remove('hidden');
+
+        // 버튼 1 비활성화 스타일
+        btn1.className = `sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg text-slate-600 hover:text-slate-950 transition-all`;
+        // 버튼 2 활성화 스타일
+        btn2.className = `sub-tab-btn px-4 py-2 text-sm font-bold rounded-lg bg-white shadow-sm transition-all ${themeColorClass}`;
+      }
+
+      // 서브 탭 전환 후 수식 실시간 렌더링
+      renderMathematicalFormulas();
+    }
+  </script>
+</body>
+</html>

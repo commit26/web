@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>락 네온 볼링 2026 - Retro Synthwave Bowling</title>
+    <style>
+        /* 기본 레이아웃 스타일 설정 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html 
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05020a;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #f1f5f9;
+        }
+
+        /* 메인 볼링 게임 스크린 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 3D 레인 캔버스 */
+        #bowlingCanvas {
+            display: block;
+            background-color: #070312;
+            border: 4px solid #3b0764;
+            box-shadow: 0 10px 45px rgba(139, 92, 246, 0.4);
+            border-radius: 16px;
+            max-width: 95vw;
+            max-height: 85vh;
+        }
+
+        /* UI 오버레이 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 5, 22, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .neon-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #a78bfa, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .instruction-box {
+            background: rgba(30, 10, 50, 0.6);
+            border: 1px solid #c084fc;
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            max-width: 600px;
+            text-align: left;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            color: #d8b4fe;
+        }
+
+        .btn {
+            background: #8b5cf6;
+            color: #fff;
+            border: none;
+            padding: 14px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            margin: 8px;
+        }
+
+        .btn:hover {
+            background: #a78bfa;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(167, 139, 250, 0.5);
+        }
+
+        .btn-pink {
+            background: #ec4899;
+            box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+        }
+
+        .btn-pink:hover {
+            background: #f43f5e;
+            box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5);
+        }
+
+        .main-link {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 35px;
+            background: linear-gradient(135deg, #374151, #1f2937);
+            border: 1px solid #4b5563;
+            color: #f3f4f6;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 30px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .main-link:hover {
+            background: linear-gradient(135deg, #4b5563, #374151);
+            color: #a78bfa;
+            border-color: #a78bfa;
+            transform: translateY(-2px);
+        }
+
+        /* 대시보드 및 컨트롤 정보 표시 */
+        #hud {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            background: rgba(15, 5, 30, 0.9);
+            border: 2px solid #581c87;
+            border-radius: 12px;
+            padding: 10px 25px;
+            z-index: 10;
+            gap: 20px;
+            align-items: center;
+            font-family: monospace;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .score-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            color: #a78bfa;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .score-val {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #f1f5f9;
+        }
+
+        /* 실시간 볼링 점수판 오버레이 */
+        #scoring-sheet {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            background: rgba(15, 5, 30, 0.95);
+            border: 2px solid #c084fc;
+            border-radius: 10px;
+            padding: 5px;
+            z-index: 10;
+            overflow-x: auto;
+            max-width: 95vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .frame-box {
+            border: 1px solid #581c87;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .frame-header {
+            background: #3b0764;
+            padding: 2px 0;
+            font-weight: bold;
+            color: #d8b4fe;
+        }
+
+        .frame-rolls {
+            display: flex;
+            border-bottom: 1px solid #581c87;
+            height: 24px;
+        }
+
+        .roll-val {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #581c87;
+            font-weight: bold;
+        }
+
+        .roll-val:last-child {
+            border-right: none;
+        }
+
+        .frame-total {
+            height: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: #e9d5ff;
+        }
+
+        /* 스핀 및 투구 방향 게이지바 */
+        #gauge-controls {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .vertical-gauge {
+            width: 25px;
+            height: 180px;
+            background: #1e1b4b;
+            border: 2px solid #a78bfa;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(0deg, #10b981, #f59e0b, #ef4444);
+            transition: height 0.05s linear;
+        }
+
+        .gauge-label {
+            font-size: 0.7rem;
+            text-align: center;
+            font-weight: bold;
+            color: #c084fc;
+            text-transform: uppercase;
+        }
+
+        /* 핀 쓰러짐 상황 전광판 안내 자막 */
+        #pin-announcer {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #ec4899;
+            text-shadow: 0 0 25px rgba(236, 72, 153, 0.7);
+            opacity: 0;
+            z-index: 5;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        #pin-announcer.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 상단 미니 HUD 대시보드 -->
+        <div id="hud">
+            <div class="score-col">
+                <span class="score-label">현재 프레임 FRAME</span>
+                <span id="hud-frame" class="score-val">1</span>
+            </div>
+            <div class="score-col" style="border-left: 1px solid #581c87; padding-left: 15px;">
+                <span class="score-label">투구 횟수 ROLL</span>
+                <span id="hud-roll" class="score-val" style="color: #ec4899;">1</span>
+            </div>
+            <div class="score-col" style="border-left: 1px solid #581c87; padding-left: 15px;">
+                <span class="score-label">총 점수 TOTAL</span>
+                <span id="hud-score" class="score-val" style="color: #eab308;">0</span>
+            </div>
+            <!-- 왼쪽 '메인으로 돌아가기' 링크 적용 버튼 -->
+            <a href="index.html" class="btn" style="padding: 6px 15px; font-size: 0.8rem; margin: 0 0 0 15px; text-decoration: none; display: flex; align-items: center; justify-content: center;">메인으로</a>
+        </div>
+
+        <!-- 알림 메시지 보드 -->
+        <div id="pin-announcer">STRIKE!</div>
+
+        <!-- 게이지 인디케이터 제어 영역 -->
+        <div id="gauge-controls">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <span class="gauge-label">POWER</span>
+                <div class="vertical-gauge">
+                    <div id="power-fill" class="gauge-fill"></div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <span class="gauge-label">SPIN</span>
+                <div class="vertical-gauge" style="border-color: #06b6d4;">
+                    <div id="spin-fill" class="gauge-fill" style="background: linear-gradient(0deg, #06b6d4, #a78bfa);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D 원근법 볼링장 레인 -->
+        <canvas id="bowlingCanvas" width="900" height="600"></canvas>
+
+        <!-- 하단 실시간 프레임 스코어 시트 -->
+        <div id="scoring-sheet">
+            <!-- 1프레임부터 10프레임까지 JS에서 동적으로 박스 생성해 삽입 -->
+        </div>
+
+        <!-- 시작 로비 화면 -->
+        <div id="screen-lobby" class="overlay">
+            <h1 class="neon-title">BOWLINGDINGDONG</h1>
+            <p style="font-size: 1.25rem; color: #a78bfa; margin-bottom: 10px; letter-spacing: 1.5px;">원근법 탑재 3D 네온 볼링 시뮬레이터</p>
+            
+            <div class="instruction-box">
+                <strong>[락 볼링 훈련장 가이드 및 조작법]</strong><br>
+                1. <strong>포지셔닝 단계 (POSITION)</strong>: 공을 굴리기 전, 마우스(또는 터치)를 좌우로 움직여 공의 시작 위치를 설정합니다.<br>
+                2. <strong>스핀 & 파워 충전 (AIM & LAUNCH)</strong>:<br>
+                - 마우스를 <strong>꾹 누르고 있으면(Hold)</strong> 먼저 던지는 **파워 게이지**가 상승합니다.<br>
+                - 마우스를 놓는 타이밍에 따라 최종 파워가 결정되며, 동시에 공의 **사이드 스핀(Spin) 수치**가 무작위로 살짝 추가되어 궤적이 역동적으로 결정됩니다.<br>
+                3. <strong>공과 핀 쓰러짐 및 체인 리액션</strong>: 공이 핀 무리에 부딪힐 때 속도가 크게 줄어들며 쓰러지듯 튀어 나가고, 연쇄적으로 핀들이 휩쓸리는 물리 충돌을 가동합니다.<br>
+                4. <strong>정통 볼링 규격 점수제</strong>: 스트라이크와 스페어, 10프레임의 추가 투구 규칙까지 실제 세계 볼링 협회 규정에 맞춰 점수가 실시간 정산됩니다.
+            </div>
+            <div>
+                <button class="btn btn-pink" onclick="startGame()">락 볼링 시작하기</button>
+            </div>
+            <!-- 로비 화면에서도 안전하게 되돌아갈 수 있도록 메인 링크 적용 -->
+            <a href="index.html" class="main-link">메인으로 돌아가기</a>
+        </div>
+
+        <!-- 게임 종료 전광판 화면 -->
+        <div id="screen-gameover" class="overlay" style="display: none;">
+            <h1 id="gameover-title" class="neon-title">GAME OVER</h1>
+            <p id="gameover-desc" style="font-size: 1.4rem; margin-bottom: 25px;">최종 점수: 150점</p>
+            
+            <div>
+                <button class="btn btn-pink" onclick="startGame()">다시 한 판 더</button>
+            </div>
+            <!-- 필수 요구사항: 메인으로 돌아가기(index.html 리셋) 링크 구현 -->
+            <a href="index.html" class="main-link">메인으로 돌아가기</a>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SOUND SYNTHESIZER (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const now = audioCtx.currentTime;
+
+            if (type === 'roll') { // 공 구르는 소리 (묵직한 노이즈 저음 진동)
+                const bufferSize = audioCtx.sampleRate * 1.5;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                // 필터로 저음 진동만 남김
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(140, now);
+                filter.frequency.exponentialRampToValueAtTime(80, now + 1.2);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 1.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start(now);
+                noise.stop(now + 1.5);
+
+            } else if (type === 'hit') { // 핀 격돌음 (쨍그랑! 쿵!)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+                // 고음 금속 스파크 노이즈 가미
+                const bufferSize = audioCtx.sampleRate * 0.3;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const noiseFilter = audioCtx.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.value = 1800;
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.3, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                noise.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(now);
+                noise.start(now);
+                osc.stop(now + 0.45);
+                noise.stop(now + 0.3);
+
+            } else if (type === 'gutter') { // 거터 도랑 안착 (스르륵 탁!)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.5);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+
+            } else if (type === 'cheer') { // 환호 축하 세레머니
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                const scale = [440, 554.37, 659.25, 880]; // 아르페지오 신스
+                scale.forEach((freq, i) => {
+                    const singleOsc = audioCtx.createOscillator();
+                    const singleGain = audioCtx.createGain();
+                    singleOsc.type = 'sine';
+                    singleOsc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    singleGain.gain.setValueAtTime(0.12, now + i * 0.08);
+                    singleGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.2);
+                    singleOsc.connect(singleGain);
+                    singleGain.connect(audioCtx.destination);
+                    singleOsc.start(now + i * 0.08);
+                    singleOsc.stop(now + i * 0.08 + 0.25);
+                });
+            }
+        }
+
+        // --- 2. CANVAS &perspective 3D COORDINATES ---
+        const canvas = document.getElementById('bowlingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 레인 원근 3차원 투영 뷰포트 물리 배치
+        const LANE = {
+            topX: 450, topY: 150, topW: 100,       // 레인 끝단 넓이
+            botX: 450, botY: 530, botW: 360,       // 레인 앞단 넓이
+            gutterLeftTop: 390, gutterLeftBot: 250,
+            gutterRightTop: 510, gutterRightBot: 650
+        };
+
+        // 게임 제어 루틴
+        let gameActive = false;
+        let playState = 'POSITION'; // POSITION, POWER_UP, ROLL, RESULT, OVER
+        let currentFrame = 1;
+        let currentRoll = 1;
+        let pinsKnockedThisFrame = 0;
+
+        // 볼링공 물리 데이터 모델
+        let ball = {
+            x: 450, y: 510, z: 0.0, // 0.0(앞) -> 1.0(뒤 핀덱 도킹)
+            vx: 0, vy: -5, vz: 0.02,
+            bounceX: 0, bounceY: 0, // 충돌 후 튕겨 나가는 속도 성분
+            radius: 20,
+            active: false,
+            power: 0,
+            spin: 0,
+            rolled: false,
+            collisionTriggered: false, // 핀 무리와 부딪히는 순간 감속 및 이탈 물리 작동 제어용
+            fallAngle: 0, // 충돌 후 스핀을 먹고 쓰러지는 회전각도
+            color: '#ec4899' // 형광 핑크 볼
+        };
+
+        // 볼링 핀 리스트 (10개 핀 삼각 구조 물리적 세팅)
+        let pins = [];
+        const PIN_RADIUS_3D = 7; // 핀 머리 반경
+
+        function initPins() {
+            pins = [];
+            // 삼각 기하 레이아웃 매핑
+            const pinLayout = [
+                { id: 1,  col: 0, row: 0, x: 450, y: 155 }, // 헤드 핀 (앞)
+                { id: 2,  col: -1, row: 1, x: 435, y: 145 },
+                { id: 3,  col: 1, row: 1, x: 465, y: 145 },
+                { id: 4,  col: -2, row: 2, x: 420, y: 135 },
+                { id: 5,  col: 0, row: 2, x: 450, y: 135 },
+                { id: 6,  col: 2, row: 2, x: 480, y: 135 },
+                { id: 7,  col: -3, row: 3, x: 405, y: 125 },
+                { id: 8,  col: -1, row: 3, x: 435, y: 125 },
+                { id: 9,  col: 1, row: 3, x: 465, y: 125 },
+                { id: 10, col: 3, row: 3, x: 495, y: 125 }  // 끝줄 핀 (뒤)
+            ];
+
+            pinLayout.forEach(p => {
+                pins.push({
+                    id: p.id,
+                    col: p.col,
+                    row: p.row,
+                    x: p.x, // 기본 평면 투영 X
+                    y: p.y, // 기본 평면 투영 Y
+                    baseX: p.x,
+                    baseY: p.y,
+                    vx: 0, vy: 0,
+                    z: 0, 
+                    vz: 0,
+                    active: true,
+                    knocked: false,
+                    angle: 0, // 쓰러진 회전 각도
+                    opacity: 1.0
+                });
+            });
+        }
+
+        // 파티클 스파크 목록
+        let sparks = [];
+
+        // 스코어 통계 기록 저장소
+        let frames = Array.from({ length: 11 }, () => []);
+        let frameScores = Array(11).fill(0);
+
+        // --- 2.5 GLOBAL UTILITIES ---
+        // 안내 전광판 알림 연출 함수 (어설션 ReferenceError 방지를 위해 상단 정의)
+        function showAnnouncer(text, color = '#f59e0b') {
+            const el = document.getElementById('pin-announcer');
+            if (el) {
+                el.textContent = text;
+                el.style.color = color;
+                el.style.textShadow = `0 0 25px ${color}`;
+                el.classList.add('show');
+                setTimeout(() => {
+                    el.classList.remove('show');
+                }, 1800);
+            }
+        }
+
+        // --- 3. EVENT LISTENERS ---
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameActive || playState !== 'POSITION') return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            
+            // 공의 시작 위치를 하단 레인 안쪽으로 국한 조정
+            let mouseX = (e.clientX - rect.left) * scaleX;
+            ball.x = Math.max(340, Math.min(560, mouseX));
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+
+            if (playState === 'POSITION' && e.button === 0) {
+                // 파워 충전 상태 돌입
+                playState = 'POWER_UP';
+                ball.power = 0;
+                chargeDirection = 1;
+                document.getElementById('gauge-controls').style.display = 'flex';
+            }
+        });
+
+        // 게이지 차지용 계수
+        let chargeDirection = 1;
+
+        window.addEventListener('mouseup', () => {
+            if (gameActive && playState === 'POWER_UP') {
+                // 볼 릴리즈 투구 개시!
+                playState = 'ROLL';
+                document.getElementById('gauge-controls').style.display = 'none';
+                releaseBall();
+            }
+        });
+
+        // --- 4. GAME SYSTEM & SCORING LOGIC ---
+        function startGame() {
+            gameActive = true;
+            playState = 'POSITION';
+            currentFrame = 1;
+            currentRoll = 1;
+            
+            ball.x = 450;
+            ball.y = 510;
+            ball.z = 0.0;
+            ball.active = false;
+            ball.rolled = false;
+            ball.collisionTriggered = false;
+            ball.bounceX = 0;
+            ball.bounceY = 0;
+            ball.fallAngle = 0;
+
+            // 스코어 프레임 초기화
+            frames = Array.from({ length: 11 }, () => []);
+            frameScores = Array(11).fill(0);
+
+            initPins();
+            sparks = [];
+
+            buildScoringSheet();
+            updateHUD();
+
+            document.getElementById('screen-lobby').style.display = 'none';
+            document.getElementById('screen-gameover').style.display = 'none';
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('scoring-sheet').style.display = 'flex';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetToLobby() {
+            gameActive = false;
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('scoring-sheet').style.display = 'none';
+            document.getElementById('screen-gameover').style.display = 'none';
+            document.getElementById('screen-lobby').style.display = 'flex';
+        }
+
+        function releaseBall() {
+            ball.active = true;
+            ball.rolled = true;
+            ball.collisionTriggered = false;
+            ball.bounceX = 0;
+            ball.bounceY = 0;
+            ball.fallAngle = 0;
+            
+            // 파워에 비례한 원근 깊이 전진 가중치 속도
+            const powerRatio = ball.power / 100;
+            ball.vz = 0.015 + powerRatio * 0.018; 
+            
+            // 스핀 물리 성분
+            const rollError = Math.abs(ball.power - 80); // 80이 완벽 스위트 파워 지점
+            ball.spin = (Math.random() * 2.8 - 1.4) + (rollError * 0.05 * (Math.random() > 0.5 ? 1 : -1));
+
+            // 시작 수평 속도 미세 연동 (가운데로 향하게 유도)
+            ball.vx = (450 - ball.x) * 0.003;
+
+            playSound('roll');
+        }
+
+        // 볼링 점수 계산 알고리즘 규격 구현
+        function calculateScore() {
+            let total = 0;
+            for (let f = 1; f <= 10; f++) {
+                let frameRolls = frames[f];
+                if (!frameRolls || frameRolls.length === 0) continue;
+
+                let sum = frameRolls.reduce((a, b) => a + b, 0);
+
+                if (f < 10) {
+                    if (frameRolls[0] === 10) { // 스트라이크 보너스
+                        let bonus = 0;
+                        let nextFrame = frames[f + 1];
+                        if (nextFrame && nextFrame.length > 0) {
+                            bonus += nextFrame[0];
+                            if (nextFrame[0] === 10 && f < 9) { // 릴레이 연속 스트라이크인 경우
+                                let thirdFrame = frames[f + 2];
+                                if (thirdFrame && thirdFrame.length > 0) {
+                                    bonus += thirdFrame[0];
+                                }
+                            } else if (nextFrame.length > 1) {
+                                bonus += nextFrame[1];
+                            }
+                        }
+                        sum += bonus;
+                    } else if (frameRolls[0] + frameRolls[1] === 10) { // 스페어 보너스
+                        let bonus = 0;
+                        let nextFrame = frames[f + 1];
+                        if (nextFrame && nextFrame.length > 0) {
+                            bonus += nextFrame[0];
+                        }
+                        sum += bonus;
+                    }
+                }
+                
+                total += sum;
+                frameScores[f] = total;
+            }
+            return total;
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-frame').textContent = Math.min(10, currentFrame);
+            document.getElementById('hud-roll').textContent = currentRoll;
+            document.getElementById('hud-score').textContent = calculateScore();
+            updateScoringSheetUI();
+        }
+
+        function processRollResult() {
+            // 이번 투구에서 쓰러진 총 누적 핀 개수 세기
+            let currentKnocked = 0;
+            pins.forEach(pin => {
+                if (pin.knocked && pin.active) {
+                    currentKnocked++;
+                    pin.active = false; // 수거 완료 처리
+                }
+            });
+
+            // 프레임에 점수 등록
+            const frameRolls = frames[currentFrame];
+            frameRolls.push(currentKnocked);
+
+            // 알림 어나운서 메시지 출력
+            let hitText = `${currentKnocked} PINS`;
+            if (currentKnocked === 10 && currentRoll === 1) {
+                hitText = "🔥 STRIKE! 🔥";
+                playSound('cheer');
+            } else if (currentRoll === 2 && (frameRolls[0] + frameRolls[1] === 10)) {
+                hitText = "⭐ SPARE! ⭐";
+                playSound('cheer');
+            } else if (currentKnocked === 0) {
+                hitText = "GUTTER 💦";
+            }
+
+            showAnnouncer(hitText, currentKnocked === 10 ? '#ec4899' : '#a78bfa');
+
+            // 프레임 이동 규칙 검출
+            let advanceFrame = false;
+
+            if (currentFrame < 10) {
+                if (currentRoll === 1 && currentKnocked === 10) {
+                    // 1구 스트라이크는 바로 다음 프레임행
+                    advanceFrame = true;
+                } else if (currentRoll === 2) {
+                    advanceFrame = true;
+                } else {
+                    currentRoll = 2;
+                }
+            } else {
+                // 10프레임 보너스 연장 규칙
+                if (currentRoll === 1) {
+                    currentRoll = 2;
+                } else if (currentRoll === 2) {
+                    const tenFrameSum = frameRolls[0] + frameRolls[1];
+                    if (tenFrameSum >= 10) {
+                        currentRoll = 3; // 스페어나 스트라이크 성공 시 보너스 3구 발송
+                    } else {
+                        advanceFrame = true;
+                    }
+                } else if (currentRoll === 3) {
+                    advanceFrame = true;
+                }
+            }
+
+            if (advanceFrame) {
+                currentFrame++;
+                currentRoll = 1;
+                // 새로운 프레임 진입 시 모든 10개 핀 원복 셋업
+                initPins();
+            } else {
+                // 같은 프레임 2구 진행 시, 쓰러진 핀들만 완전히 치우고 서있는 핀들만 남겨둔 채 2구 대기
+                // 핀들의 knocked 상태를 유지하면서 active만 제거
+            }
+
+            // 게임 완결 조건
+            if (currentFrame > 10) {
+                setTimeout(() => {
+                    endGame();
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    playState = 'POSITION';
+                    ball.x = 450;
+                    ball.y = 510;
+                    ball.z = 0.0;
+                    ball.active = false;
+                    ball.rolled = false;
+                    ball.collisionTriggered = false;
+                    ball.bounceX = 0;
+                    ball.bounceY = 0;
+                    ball.fallAngle = 0;
+                    updateHUD();
+                }, 1500);
+            }
+        }
+
+        // --- 5. 점수 시트 그리기 및 UI 갱신 ---
+        function buildScoringSheet() {
+            const sheet = document.getElementById('scoring-sheet');
+            sheet.innerHTML = '';
+            for (let f = 1; f <= 10; f++) {
+                const box = document.createElement('div');
+                box.className = 'frame-box';
+                box.innerHTML = `
+                    <div class="frame-header">${f}</div>
+                    <div class="frame-rolls">
+                        <div class="roll-val" id="r-${f}-1">-</div>
+                        <div class="roll-val" id="r-${f}-2">-</div>
+                        ${f === 10 ? '<div class="roll-val" id="r-10-3">-</div>' : ''}
+                    </div>
+                    <div class="frame-total" id="t-${f}"></div>
+                `;
+                sheet.appendChild(box);
+            }
+        }
+
+        function updateScoringSheetUI() {
+            for (let f = 1; f <= 10; f++) {
+                const rolls = frames[f];
+                if (!rolls) continue;
+
+                const r1 = document.getElementById(`r-${f}-1`);
+                const r2 = document.getElementById(`r-${f}-2`);
+                const r3 = document.getElementById(`r-10-3`);
+                const total = document.getElementById(`t-${f}`);
+
+                if (rolls.length >= 1) {
+                    r1.textContent = rolls[0] === 10 ? 'X' : rolls[0] === 0 ? '-' : rolls[0];
+                }
+                if (rolls.length >= 2) {
+                    if (f === 10) {
+                        r2.textContent = rolls[1] === 10 ? 'X' : rolls[1] === 0 ? '-' : rolls[1];
+                    } else {
+                        r2.textContent = (rolls[0] + rolls[1] === 10) ? '/' : rolls[1] === 0 ? '-' : rolls[1];
+                    }
+                }
+                if (rolls.length >= 3 && r3) {
+                    r3.textContent = rolls[2] === 10 ? 'X' : rolls[2] === 0 ? '-' : rolls[2];
+                }
+
+                // 점수 합산 가시화
+                if (frameScores[f] > 0 || (rolls.length > 0 && f === 1)) {
+                    total.textContent = frameScores[f] || 0;
+                }
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            const screen = document.getElementById('screen-gameover');
+            const totalScore = calculateScore();
+            document.getElementById('gameover-desc').textContent = `최종 락 볼링 스코어: ${totalScore}점`;
+            screen.style.display = 'flex';
+        }
+
+
+        // --- 6. PHYSICS & NEON ENGINE (3D 원근법 볼 바운딩 및 핀 연쇄 충돌) ---
+        class Spark {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 3;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.alpha = 1.0;
+                this.decay = Math.random() * 0.04 + 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.random() * 2 + 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function spawnSparks(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                sparks.push(new Spark(x, y, color));
+            }
+        }
+
+        function updatePhysics(dt) {
+            // 파워 충전 루틴
+            if (playState === 'POWER_UP') {
+                ball.power += chargeDirection * dt * 140;
+                if (ball.power >= 100) {
+                    ball.power = 100;
+                    chargeDirection = -1;
+                } else if (ball.power <= 0) {
+                    ball.power = 0;
+                    chargeDirection = 1;
+                }
+                document.getElementById('power-fill').style.height = `${ball.power}%`;
+                // 스핀 게이지도 함께 약간의 출렁임 오버라이딩
+                document.getElementById('spin-fill').style.height = `${Math.min(100, Math.abs(ball.power - 80) * 4.5)}%`;
+            }
+
+            // 공 굴러가기 3D 물리 업데이트
+            if (ball.active) {
+                if (!ball.collisionTriggered) {
+                    // 1. 충돌 전: 통상적인 전진 및 스핀 작용
+                    ball.z += ball.vz * 60 * dt;
+                    ball.x += ball.vx * 60 * dt + (ball.spin * ball.z * 1.5 * 60 * dt);
+                } else {
+                    // 2. 충돌 후: 운동 에너지를 이관받고 속도가 급격히 꺾이며 쓰러져 튕겨 나감
+                    ball.z += ball.vz * 60 * dt; // 전진 속도는 감속
+                    ball.x += ball.bounceX * 60 * dt;
+                    
+                    // 쓰러지는 리얼한 스핀 회전 각도 가산
+                    ball.fallAngle += (ball.spin * 3.5 + 2.0) * dt;
+                }
+
+                // 레인 이탈 거터 낙하 체크 (충돌 후 거터로 흘러내리는 현상 방지용 바운더리)
+                const laneW = LANE.botW + (LANE.topW - LANE.botW) * ball.z;
+                const laneLeft = 450 - laneW / 2;
+                const laneRight = 450 + laneW / 2;
+
+                // 공이 이미 핀 덱 깊은 영역(z >= 0.88)에 진입했거나 이미 충돌한 이후라면 거터 이탈 판정을 완전히 면제합니다!
+                const safeZone = ball.z >= 0.88 || ball.collisionTriggered;
+
+                if (!safeZone && (ball.x < laneLeft || ball.x > laneRight)) {
+                    ball.active = false;
+                    playSound('gutter');
+                    showAnnouncer("GUTTER 💦", "#475569");
+                    setTimeout(() => {
+                        processRollResult();
+                    }, 1200);
+                    return;
+                }
+
+                // 핀 덱 근처 도달 시 핀 충돌 체크 (안전한 조기 충돌 감지를 위해 판정 시작점을 0.85로 확대)
+                if (!ball.collisionTriggered && ball.z >= 0.85) {
+                    checkPinCollisions();
+                }
+
+                // 끝단 도달 시 볼 비활성화 및 결과 처리
+                if (ball.z >= 1.05) {
+                    ball.active = false;
+                }
+            }
+
+            // 핀 날아가는 개별적 3차원 물리 스피드 적용
+            pins.forEach(pin => {
+                if (pin.knocked) {
+                    pin.x += pin.vx;
+                    pin.y += pin.vy;
+                    pin.angle += 0.15; // 핑글핑글 돌며 쓰러짐
+                    pin.opacity = Math.max(0, pin.opacity - 0.02);
+                }
+            });
+
+            // 이펙트 파티클 업데이트
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                sparks[i].update();
+                if (sparks[i].alpha <= 0) sparks.splice(i, 1);
+            }
+        }
+
+        // 공과 핀 사이의 2차원 투영 충돌 검사 & 핀들 간의 연쇄 도미노(체인 리액션) 물리 연산
+        function checkPinCollisions() {
+            let hitAnyPin = false;
+            
+            // 핀과의 충돌 시 공의 정확한 원근 투영 Y좌표(ballYProj)를 계산하여 판정에 사용합니다.
+            const ballYProj = 510 - (510 - 150) * ball.z;
+
+            // 1. 공과 1차 충돌하는 핀 탐색 및 속도 전달
+            pins.forEach(pin => {
+                if (pin.active && !pin.knocked) {
+                    // 화면에 그려지는 3D 원근 Y 좌표와 핀의 Y 좌표를 정밀하게 매핑합니다.
+                    const distToBall = Math.sqrt((ball.x - pin.x)**2 + (ballYProj - pin.y)**2);
+                    if (distToBall < 25) { // 충돌 임계반경
+                        pin.knocked = true;
+                        hitAnyPin = true;
+
+                        // 공의 에너지를 핀에 운동에너지로 충전 이관
+                        const dx = pin.x - ball.x;
+                        pin.vx = dx * 0.4 + (Math.random() * 6 - 3);
+                        pin.vy = -Math.abs(ball.vz * 220) + (Math.random() * 4 - 2);
+
+                        spawnSparks(pin.x, pin.y, '#f43f5e');
+                    }
+                }
+            });
+
+            if (hitAnyPin) {
+                playSound('hit');
+
+                // 공도 큰 물리 충격을 받아 쓰러지듯 튀어나가는 이탈 물리 가동 (속도 감속 및 바운스 벡터 부여)
+                ball.collisionTriggered = true;
+                ball.vz *= 0.35; // 전진 전방 속도 대폭 축소 (감속)
+                ball.bounceX = (Math.random() * 5.0 - 2.5) - (ball.spin * 1.5); // 옆으로 튕김
+                ball.fallAngle = 0.1; // 쓰러지기 시작하는 회전 트리거 각도
+
+                // 2. 체인 리액션: 쓰러지는 핀이 주변 핀과 차례로 충돌을 전파 (최대 4회 릴레이 반복)
+                for (let iter = 0; iter < 4; iter++) {
+                    pins.forEach(pinA => {
+                        if (pinA.knocked && pinA.active) {
+                            pins.forEach(pinB => {
+                                if (!pinB.knocked && pinB.active) {
+                                    // 핀 A와 핀 B 사이의 평면 거리 체크
+                                    const distBetween = Math.sqrt((pinA.x - pinB.x)**2 + (pinA.y - pinB.y)**2);
+                                    if (distBetween < 22) { // 핀끼리 닿는 반경
+                                        pinB.knocked = true;
+                                        
+                                        // 핀 A의 속도를 일부 핀 B에 전파 분할
+                                        const angle = Math.atan2(pinB.y - pinA.y, pinB.x - pinA.x);
+                                        const speed = Math.sqrt(pinA.vx**2 + pinA.vy**2) * 0.75;
+                                        
+                                        pinB.vx = Math.cos(angle) * speed + (Math.random() * 3 - 1.5);
+                                        pinB.vy = Math.sin(angle) * speed + (Math.random() * 3 - 1.5);
+
+                                        spawnSparks(pinB.x, pinB.y, '#06b6d4');
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+
+            // 구르는 타격 시퀀스가 완전히 끝난 후 결과 정산 예약 (정상적인 딜레이 후 프레임 결과 확정)
+            // 공이 핀을 스쳤을 때 무조건 이 딜레이 정산 루틴이 실행되도록 보장합니다.
+            if (hitAnyPin) {
+                setTimeout(() => {
+                    processRollResult();
+                }, 1500);
+            }
+        }
+
+        // --- 7. RENDERING ENGINE ---
+        function gameLoop(time) {
+            if (!gameActive) return;
+
+            const dt = 1 / 60;
+            updatePhysics(dt);
+            renderBowlingLane();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function renderBowlingLane() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 네온 격자망 뒷배경 그리기
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+
+            // 2. 락 볼링장 네온 레인 드로잉 (3D 사다리꼴 원근법)
+            ctx.fillStyle = '#0f0822'; // 보라빛 짙은 바닥
+            ctx.beginPath();
+            ctx.moveTo(450 - LANE.botW/2, LANE.botY);
+            ctx.lineTo(450 + LANE.botW/2, LANE.botY);
+            ctx.lineTo(450 + LANE.topW/2, LANE.topY);
+            ctx.lineTo(450 - LANE.topW/2, LANE.topY);
+            ctx.closePath();
+            ctx.fill();
+
+            // 레인 외각 에지 가이드라인 (형광 네온 블루 스트립)
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#06b6d4';
+            
+            // 좌측 경계선
+            ctx.beginPath();
+            ctx.moveTo(450 - LANE.botW/2, LANE.botY);
+            ctx.lineTo(450 - LANE.topW/2, LANE.topY);
+            ctx.stroke();
+
+            // 우측 경계선
+            ctx.beginPath();
+            ctx.moveTo(450 + LANE.botW/2, LANE.botY);
+            ctx.lineTo(450 + LANE.topW/2, LANE.topY);
+            ctx.stroke();
+
+            // 레인 안쪽 가이드 화살표 점박이 마커 드로잉 (볼링의 화살표 가이드)
+            ctx.fillStyle = 'rgba(167, 139, 250, 0.4)';
+            ctx.shadowBlur = 0;
+            const markerY = LANE.topY + (LANE.botY - LANE.topY) * 0.4;
+            const markerW = LANE.topW + (LANE.botW - LANE.topW) * 0.4;
+            for (let offset = -markerW*0.3; offset <= markerW*0.3; offset += markerW*0.15) {
+                ctx.beginPath();
+                ctx.arc(450 + offset, markerY, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 3. 삼각 볼링핀 렌더링 (원근 스케일 적용)
+            pins.forEach(pin => {
+                if (pin.active) {
+                    ctx.save();
+                    ctx.globalAlpha = pin.opacity;
+                    
+                    const scaleFactor = 1.0; 
+                    const pinH = 34 * scaleFactor;
+                    const pinW = 12 * scaleFactor;
+
+                    ctx.translate(pin.x, pin.y);
+                    ctx.rotate(pin.angle);
+
+                    // 핀에 화려한 네온 그린 컬러 아우라 부여
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#10b981';
+                    ctx.fillStyle = pin.knocked ? '#374151' : '#ffffff'; 
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 1.5;
+
+                    // 핀 기하 모양 드로잉 (머리구체 + 목 좁아짐 + 몸통 볼록해짐 구조)
+                    ctx.beginPath();
+                    // 핀 머리
+                    ctx.arc(0, -pinH * 0.7, pinW * 0.4, 0, Math.PI * 2);
+                    // 핀 목에서 몸통으로 이어지는 곡선 패스
+                    ctx.moveTo(-pinW * 0.25, -pinH * 0.4);
+                    ctx.bezierCurveTo(-pinW * 0.6, -pinH * 0.1, -pinW * 0.6, pinH * 0.3, -pinW * 0.4, pinH * 0.5);
+                    ctx.lineTo(pinW * 0.4, pinH * 0.5);
+                    ctx.bezierCurveTo(pinW * 0.6, pinH * 0.3, pinW * 0.6, -pinH * 0.1, pinW * 0.25, -pinH * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // 볼링핀 고유 빨간 띠선 드로잉
+                    if (!pin.knocked) {
+                        ctx.fillStyle = '#ef4444';
+                        ctx.shadowBlur = 0;
+                        ctx.fillRect(-pinW * 0.22, -pinH * 0.45, pinW * 0.44, 4);
+                    }
+
+                    ctx.restore();
+                }
+            });
+
+            // 4. 구르는 볼링공 원근 묘사
+            if (ball.rolled) {
+                const ballRadiusFactor = 20 - ball.z * 11;
+                const ballYProj = 510 - (510 - 150) * ball.z;
+
+                ctx.save();
+                
+                // 공이 무리와 격돌한 상태일 때 튕겨 나가면서 비틀대고 쓰러지는 3차원 축 이동 연출 적용
+                if (ball.collisionTriggered) {
+                    ctx.translate(ball.x, ballYProj);
+                    ctx.rotate(ball.fallAngle); // 쓰러지는 회전각 적용
+                    ctx.translate(-ball.x, -ballYProj);
+                }
+
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = ball.color;
+                ctx.fillStyle = ball.color;
+                ctx.beginPath();
+                ctx.arc(ball.x, ballYProj, ballRadiusFactor, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 볼링공 구멍 3개 표현
+                ctx.fillStyle = '#000000';
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.arc(ball.x - ballRadiusFactor*0.3, ballYProj - ballRadiusFactor*0.1, ballRadiusFactor*0.15, 0, Math.PI * 2);
+                ctx.arc(ball.x + ballRadiusFactor*0.1, ballYProj - ballRadiusFactor*0.3, ballRadiusFactor*0.15, 0, Math.PI * 2);
+                ctx.arc(ball.x + ballRadiusFactor*0.1, ballYProj + ballRadiusFactor*0.1, ballRadiusFactor*0.15, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // 5. 파티클 및 스파크 이펙트 드로잉
+            sparks.forEach(s => s.draw());
+
+            // 6. 위치 조정 가이드라인 표식 (파울라인 대기 시)
+            if (playState === 'POSITION') {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(ball.x, ball.y);
+                ctx.lineTo(ball.x, LANE.topY); // 레인 중앙 가상 예측선 투영
+                ctx.stroke();
+
+                // 마우스 좌클릭 지시 화살표
+                ctx.fillStyle = '#ec4899';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText("◀  마우스 드래그로 공의 위치 조정  ▶", 450, 565);
+                ctx.restore();
+            }
+        }
+    </script>
+</body>
+</html>

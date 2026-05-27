@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주사위 배틀 아레나 (Dice Battle Arena)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbit&family=Pretendard:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+            overflow-x: hidden;
+        }
+
+        .font-orbit {
+            font-family: 'Orbit', sans-serif;
+        }
+
+        /* 3D Dice styling */
+        .dice-scene {
+            perspective: 600px;
+            width: 80px;
+            height: 80px;
+        }
+
+        .dice {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+        }
+
+        .dice-face {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.15);
+        }
+
+        /* Color variations for Dice faces */
+        .player-dice .dice-face {
+            border-color: #38bdf8;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+        }
+
+        .ai-dice .dice-face {
+            border-color: #f43f5e;
+            background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+        }
+
+        /* Define rotations for 3D faces */
+        .face-1 { transform: rotateY(0deg) translateZ(40px); }
+        .face-6 { transform: rotateY(180deg) translateZ(40px); }
+        .face-2 { transform: rotateX(90deg) translateZ(40px); }
+        .face-5 { transform: rotateX(-90deg) translateZ(40px); }
+        .face-3 { transform: rotateY(90deg) translateZ(40px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(40px); }
+
+        /* Dot styling */
+        .dot {
+            width: 14px;
+            height: 14px;
+            background-color: #1e293b;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .player-dice .dot { background-color: #0369a1; }
+        .ai-dice .dot { background-color: #be123c; }
+
+        /* Red dot for number 1 */
+        .dot.red-dot { background-color: #ef4444 !important; width: 20px; height: 20px; }
+
+        /* Specific positions for standard dice dots */
+        .d1 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .d2_1 { top: 20%; left: 20%; }
+        .d2_2 { bottom: 20%; right: 20%; }
+        .d3_1 { top: 20%; left: 20%; }
+        .d3_2 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .d3_3 { bottom: 20%; right: 20%; }
+        .d4_1 { top: 20%; left: 20%; }
+        .d4_2 { top: 20%; right: 20%; }
+        .d4_3 { bottom: 20%; left: 20%; }
+        .d4_4 { bottom: 20%; right: 20%; }
+        .d5_1 { top: 20%; left: 20%; }
+        .d5_2 { top: 20%; right: 20%; }
+        .d5_3 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .d5_4 { bottom: 20%; left: 20%; }
+        .d5_5 { bottom: 20%; right: 20%; }
+        .d6_1 { top: 20%; left: 20%; }
+        .d6_2 { top: 20%; right: 20%; }
+        .d6_3 { top: 50%; left: 20%; transform: translateY(-50%); }
+        .d6_4 { top: 50%; right: 20%; transform: translateY(-50%); }
+        .d6_5 { bottom: 20%; left: 20%; }
+        .d6_6 { bottom: 20%; right: 20%; }
+
+        /* Dice rotation animation during roll */
+        @keyframes roll-anim {
+            0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+            100% { transform: rotateX(720deg) rotateY(1080deg) rotateZ(360deg); }
+        }
+
+        .is-rolling {
+            animation: roll-anim 1s linear infinite;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: floatUp 2s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8 select-none">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-4xl flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-sky-500 to-indigo-500 p-2.5 rounded-xl shadow-lg">
+                <i class="fa-solid fa-dice-d20 text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-300">주사위 배틀 아레나</h1>
+                <p class="text-xs text-slate-400">전략과 행운의 결합!</p>
+            </div>
+        </div>
+        <button id="btn-rules" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs rounded-lg flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-circle-question"></i> 규칙 설명
+        </button>
+    </header>
+
+    <!-- Main Game Board -->
+    <main class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch my-auto">
+        
+        <!-- Left Side: Player Status & Battle Area -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Battle Field -->
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-2xl">
+                <!-- Background decor -->
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-950/20 pointer-events-none"></div>
+                <div class="absolute -top-12 -left-12 w-48 h-48 bg-sky-500/5 rounded-full blur-3xl"></div>
+                <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-rose-500/5 rounded-full blur-3xl"></div>
+
+                <!-- Matchup Cards -->
+                <div class="grid grid-cols-2 gap-4 relative z-10">
+                    
+                    <!-- Player Area -->
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-sky-950 flex flex-col items-center transition-all duration-300" id="player-card">
+                        <div class="relative mb-2">
+                            <span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] text-white font-bold px-1.5 py-0.5 rounded-full">YOU</span>
+                            <div class="w-16 h-16 rounded-2xl bg-sky-950 border-2 border-sky-400/50 flex items-center justify-center text-3xl shadow-md">
+                                🧙‍♂️
+                            </div>
+                        </div>
+                        <span class="font-bold text-sm text-sky-300 mb-2">플레이어</span>
+                        
+                        <!-- HP Bar -->
+                        <div class="w-full mb-1">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400 font-semibold">체력 (HP)</span>
+                                <span id="player-hp-text" class="font-orbit font-bold text-sky-400">100 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-3.5 p-[2px]">
+                                <div id="player-hp-bar" class="bg-gradient-to-r from-sky-400 to-blue-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Shield Bar -->
+                        <div class="w-full mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400 font-semibold flex items-center gap-1">🛡️ 방어막</span>
+                                <span id="player-shield-text" class="font-orbit font-bold text-teal-400">0 / 50</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-2.5 p-[2px]">
+                                <div id="player-shield-bar" class="bg-gradient-to-r from-teal-400 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Area -->
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-rose-950 flex flex-col items-center transition-all duration-300" id="ai-card">
+                        <div class="relative mb-2">
+                            <span class="absolute -top-1 -right-1 bg-rose-500 text-[10px] text-white font-bold px-1.5 py-0.5 rounded-full">AI</span>
+                            <div class="w-16 h-16 rounded-2xl bg-rose-950 border-2 border-rose-400/50 flex items-center justify-center text-3xl shadow-md">
+                                🤖
+                            </div>
+                        </div>
+                        <span class="font-bold text-sm text-rose-300 mb-2">알파다이스</span>
+                        
+                        <!-- HP Bar -->
+                        <div class="w-full mb-1">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400 font-semibold">체력 (HP)</span>
+                                <span id="ai-hp-text" class="font-orbit font-bold text-rose-400">100 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-3.5 p-[2px]">
+                                <div id="ai-hp-bar" class="bg-gradient-to-r from-rose-400 to-pink-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Shield Bar -->
+                        <div class="w-full mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400 font-semibold flex items-center gap-1">🛡️ 방어막</span>
+                                <span id="ai-shield-text" class="font-orbit font-bold text-amber-400">0 / 50</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-2.5 p-[2px]">
+                                <div id="ai-shield-bar" class="bg-gradient-to-r from-amber-400 to-yellow-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Particle Container for Hit/Shield effects -->
+                <div id="particle-container" class="absolute inset-0 pointer-events-none z-20"></div>
+
+                <!-- Middle Combat Zone: Animated Dice Rollers -->
+                <div class="my-6 flex justify-around items-center relative z-10 py-4 border-y border-slate-800/50 bg-slate-950/30 rounded-xl">
+                    <!-- Player Active Dice -->
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="text-[10px] uppercase font-bold text-sky-400 tracking-wider">플레이어 주사위</div>
+                        <div class="flex gap-3" id="player-dice-holder">
+                            <!-- Dice 1 -->
+                            <div class="dice-scene">
+                                <div id="p-dice-1" class="dice player-dice">
+                                    <div class="dice-face face-1"><span class="dot red-dot d1"></span></div>
+                                    <div class="dice-face face-2"><span class="dot d2_1"></span><span class="dot d2_2"></span></div>
+                                    <div class="dice-face face-3"><span class="dot d3_1"></span><span class="dot d3_2"></span><span class="dot d3_3"></span></div>
+                                    <div class="dice-face face-4"><span class="dot d4_1"></span><span class="dot d4_2"></span><span class="dot d4_3"></span><span class="dot d4_4"></span></div>
+                                    <div class="dice-face face-5"><span class="dot d5_1"></span><span class="dot d5_2"></span><span class="dot d5_3"></span><span class="dot d5_4"></span><span class="dot d5_5"></span></div>
+                                    <div class="dice-face face-6"><span class="dot d6_1"></span><span class="dot d6_2"></span><span class="dot d6_3"></span><span class="dot d6_4"></span><span class="dot d6_5"></span><span class="dot d6_6"></span></div>
+                                </div>
+                            </div>
+                            <!-- Dice 2 -->
+                            <div class="dice-scene">
+                                <div id="p-dice-2" class="dice player-dice">
+                                    <div class="dice-face face-1"><span class="dot red-dot d1"></span></div>
+                                    <div class="dice-face face-2"><span class="dot d2_1"></span><span class="dot d2_2"></span></div>
+                                    <div class="dice-face face-3"><span class="dot d3_1"></span><span class="dot d3_2"></span><span class="dot d3_3"></span></div>
+                                    <div class="dice-face face-4"><span class="dot d4_1"></span><span class="dot d4_2"></span><span class="dot d4_3"></span><span class="dot d4_4"></span></div>
+                                    <div class="dice-face face-5"><span class="dot d5_1"></span><span class="dot d5_2"></span><span class="dot d5_3"></span><span class="dot d5_4"></span><span class="dot d5_5"></span></div>
+                                    <div class="dice-face face-6"><span class="dot d6_1"></span><span class="dot d6_2"></span><span class="dot d6_3"></span><span class="dot d6_4"></span><span class="dot d6_5"></span><span class="dot d6_6"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VS indicator -->
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-orbit text-xs font-black text-slate-400">
+                        VS
+                    </div>
+
+                    <!-- AI Active Dice -->
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="text-[10px] uppercase font-bold text-rose-400 tracking-wider">AI 주사위</div>
+                        <div class="flex gap-3" id="ai-dice-holder">
+                            <!-- Dice 1 -->
+                            <div class="dice-scene">
+                                <div id="a-dice-1" class="dice ai-dice">
+                                    <div class="dice-face face-1"><span class="dot red-dot d1"></span></div>
+                                    <div class="dice-face face-2"><span class="dot d2_1"></span><span class="dot d2_2"></span></div>
+                                    <div class="dice-face face-3"><span class="dot d3_1"></span><span class="dot d3_2"></span><span class="dot d3_3"></span></div>
+                                    <div class="dice-face face-4"><span class="dot d4_1"></span><span class="dot d4_2"></span><span class="dot d4_3"></span><span class="dot d4_4"></span></div>
+                                    <div class="dice-face face-5"><span class="dot d5_1"></span><span class="dot d5_2"></span><span class="dot d5_3"></span><span class="dot d5_4"></span><span class="dot d5_5"></span></div>
+                                    <div class="dice-face face-6"><span class="dot d6_1"></span><span class="dot d6_2"></span><span class="dot d6_3"></span><span class="dot d6_4"></span><span class="dot d6_5"></span><span class="dot d6_6"></span></div>
+                                </div>
+                            </div>
+                            <!-- Dice 2 -->
+                            <div class="dice-scene">
+                                <div id="a-dice-2" class="dice ai-dice">
+                                    <div class="dice-face face-1"><span class="dot red-dot d1"></span></div>
+                                    <div class="dice-face face-2"><span class="dot d2_1"></span><span class="dot d2_2"></span></div>
+                                    <div class="dice-face face-3"><span class="dot d3_1"></span><span class="dot d3_2"></span><span class="dot d3_3"></span></div>
+                                    <div class="dice-face face-4"><span class="dot d4_1"></span><span class="dot d4_2"></span><span class="dot d4_3"></span><span class="dot d4_4"></span></div>
+                                    <div class="dice-face face-5"><span class="dot d5_1"></span><span class="dot d5_2"></span><span class="dot d5_3"></span><span class="dot d5_4"></span><span class="dot d5_5"></span></div>
+                                    <div class="dice-face face-6"><span class="dot d6_1"></span><span class="dot d6_2"></span><span class="dot d6_3"></span><span class="dot d6_4"></span><span class="dot d6_5"></span><span class="dot d6_6"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Turn Indicator & Status bar -->
+                <div class="flex justify-between items-center bg-slate-950/50 px-4 py-2.5 rounded-xl border border-slate-800/60 text-xs">
+                    <span class="text-slate-400">현재 상태: <strong id="game-status" class="text-sky-300">내 턴입니다. 주사위를 굴리세요!</strong></span>
+                    <span id="turn-counter" class="text-indigo-300 font-orbit">ROUND 1</span>
+                </div>
+            </div>
+
+            <!-- Operational Controls -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button id="btn-attack" class="flex flex-col items-center justify-center p-3.5 bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 rounded-xl font-bold shadow-lg shadow-rose-950/50 transition-all hover:-translate-y-0.5 border border-rose-400/30 group">
+                    <i class="fa-solid fa-fire text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm">돌격 공격</span>
+                    <span class="text-[10px] text-rose-200/80 font-normal mt-0.5">대미지 100% + 관통</span>
+                </button>
+                <button id="btn-defend" class="flex flex-col items-center justify-center p-3.5 bg-gradient-to-br from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 rounded-xl font-bold shadow-lg shadow-teal-950/50 transition-all hover:-translate-y-0.5 border border-teal-400/30 group">
+                    <i class="fa-solid fa-shield-halved text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm">수호 방어</span>
+                    <span class="text-[10px] text-teal-100/80 font-normal mt-0.5">방어막 획득 + 치유</span>
+                </button>
+                <button id="btn-tactical" class="flex flex-col items-center justify-center p-3.5 bg-gradient-to-br from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 rounded-xl font-bold shadow-lg shadow-sky-950/50 transition-all hover:-translate-y-0.5 border border-sky-400/30 group">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm">비기 전술</span>
+                    <span class="text-[10px] text-sky-100/80 font-normal mt-0.5">상태이상 및 고배율</span>
+                </button>
+                <button id="btn-roll" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center p-3.5 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-bold shadow-lg shadow-orange-950/50 transition-all hover:-translate-y-0.5 border border-amber-400/30 group">
+                    <i class="fa-solid fa-dice text-xl mb-1.5 group-hover:rotate-45 transition-transform"></i>
+                    <span class="text-sm">주사위 굴리기!</span>
+                    <span class="text-[10px] text-amber-100/80 font-normal mt-0.5">행운의 주사위 던지기</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Right Side: Game Log & Score Dashboard -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- Active Combat Action Board -->
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-star-of-life text-amber-500"></i> 선택한 전술 보너스
+                </h3>
+                <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800/80">
+                    <div id="selected-stance-name" class="font-bold text-sm text-amber-400">🔥 돌격 공격 (기본 설정)</div>
+                    <p id="selected-stance-desc" class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        주사위 합의 120%만큼 공격력을 발휘하며 상대의 방어막을 일부 관통합니다. 주사위 눈이 짝수일 경우 1.5배 가산.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Score History & Multiplier Info -->
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex-1 flex flex-col min-h-[220px]">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-scroll text-indigo-400"></i> 전투 일지 (Log)
+                </h3>
+                <div id="combat-log" class="flex-1 overflow-y-auto bg-slate-950/60 rounded-xl p-3 border border-slate-850 text-xs font-mono space-y-2 max-h-[280px] lg:max-h-none">
+                    <div class="text-slate-400">[시스템] 주사위 배틀 아레나에 오신 것을 환영합니다!</div>
+                    <div class="text-slate-400">[시스템] 행동 전술을 고르고 '주사위 굴리기'를 누르세요.</div>
+                </div>
+            </div>
+
+            <!-- Quick Action reset -->
+            <div class="flex gap-2">
+                <button id="btn-sound-toggle" class="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-xs rounded-xl flex items-center gap-2 transition-all">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i> 사운드 ON
+                </button>
+                <button id="btn-reset" class="flex-1 px-4 py-2 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold text-rose-300 hover:text-rose-200 transition-all">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> 판 초기화 (재시작)
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-6 text-center text-[10px] text-slate-500 w-full">
+        &copy; 2026 Dice Battle Arena. CSS 3D Transforms, Web Audio API & Tailwind CSS.
+    </footer>
+
+    <!-- Help Rules Modal -->
+    <div id="modal-rules" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl scale-95 transition-all duration-300" id="modal-rules-content">
+            <h2 class="text-xl font-bold text-sky-400 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
+                <i class="fa-solid fa-circle-info"></i> 게임 규칙 및 전투 안내
+            </h2>
+            <div class="space-y-4 text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-[60vh] pr-1">
+                <div>
+                    <h3 class="font-semibold text-sm text-sky-300 mb-1">🎯 게임 목표</h3>
+                    <p>상대방 '알파다이스'의 체력(HP)을 0으로 만들어 배틀에서 승리하세요!</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-sm text-rose-300 mb-1">🎲 3가지 행동 전술</h3>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong class="text-rose-400">돌격 공격:</strong> 주사위 합의 120% 피해. 상대의 방어막 수치를 30% 무시하고 직격 피해를 입힙니다. 주사위 합이 짝수일 시 대미지가 1.5배 증폭됩니다.</li>
+                        <li><strong class="text-teal-400">수호 방어:</strong> 주사위 합의 180%만큼 방어막(Shield, 최대 50)을 생성하고, 자신의 체력을 10 회복합니다.</li>
+                        <li><strong class="text-sky-400">비기 전술:</strong> 주사위 눈금에 특화된 전술. 주사위 두 눈금이 같으면(더블) 치명타가 터져 2.5배 피해를 입히며, 눈금의 차이에 따라 추가 독대미지를 부여합니다.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-sm text-amber-300 mb-1">⚡ 콤보 보너스</h3>
+                    <p>주사위의 합이 10 이상이거나, 같은 눈금(Double)이 나오면 턴 소모 없이 보너스 시너지가 가동되어 전투 지표가 상향됩니다.</p>
+                </div>
+            </div>
+            <button id="btn-close-rules" class="w-full mt-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs transition-colors border border-slate-700">
+                알겠습니다
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over / Victory Modal -->
+    <div id="modal-gameover" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300 p-4">
+        <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl scale-95 transition-all duration-300" id="modal-gameover-content">
+            <div id="gameover-icon" class="text-6xl mb-4">🏆</div>
+            <h2 id="gameover-title" class="text-2xl font-black text-amber-400 mb-2 font-orbit">VICTORY</h2>
+            <p id="gameover-desc" class="text-sm text-slate-300 mb-6">당신의 대전략이 빛을 발했습니다! 알파다이스를 침몰시켰습니다.</p>
+            <button id="btn-restart-game" class="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-indigo-950">
+                새 게임 시작하기
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Web Audio API Generator for Sound Effects ---
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playRoll() {
+                if (!this.enabled) return;
+                this.init();
+                
+                // Fast rolling click sound sequence
+                let t = this.ctx.currentTime;
+                for (let i = 0; i < 8; i++) {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150 + Math.random() * 300, t + i * 0.1);
+                    gain.gain.setValueAtTime(0.08, t + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.1 + 0.08);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start(t + i * 0.1);
+                    osc.stop(t + i * 0.1 + 0.08);
+                }
+            }
+
+            playHit() {
+                if (!this.enabled) return;
+                this.init();
+                
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+                
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.35);
+            }
+
+            playShield() {
+                if (!this.enabled) return;
+                this.init();
+                
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.4);
+                
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.4);
+            }
+
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                
+                let notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+                let t = this.ctx.currentTime;
+                
+                notes.forEach((note, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(note, t + index * 0.15);
+                    gain.gain.setValueAtTime(0.1, t + index * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + index * 0.15 + 0.4);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start(t + index * 0.15);
+                    osc.stop(t + index * 0.15 + 0.4);
+                });
+            }
+
+            playLose() {
+                if (!this.enabled) return;
+                this.init();
+                
+                let notes = [293.66, 261.63, 220.00, 146.83]; // D4, C4, A3, D3
+                let t = this.ctx.currentTime;
+                
+                notes.forEach((note, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(note, t + index * 0.2);
+                    gain.gain.setValueAtTime(0.1, t + index * 0.2);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + index * 0.2 + 0.5);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start(t + index * 0.2);
+                    osc.stop(t + index * 0.2 + 0.5);
+                });
+            }
+        }
+
+        const sfx = new SoundEffects();
+
+        // --- Game State Variables ---
+        let gameState = {
+            player: { hp: 100, maxHp: 100, shield: 0, maxShield: 50 },
+            ai: { hp: 100, maxHp: 100, shield: 0, maxShield: 50 },
+            currentTurn: 'player', // 'player' or 'ai'
+            round: 1,
+            selectedStance: 'attack', // 'attack', 'defend', 'tactical'
+            isRolling: false,
+            playerDiceResult: [1, 1],
+            aiDiceResult: [1, 1]
+        };
+
+        // --- UI Elements ---
+        const playerHpText = document.getElementById('player-hp-text');
+        const playerHpBar = document.getElementById('player-hp-bar');
+        const playerShieldText = document.getElementById('player-shield-text');
+        const playerShieldBar = document.getElementById('player-shield-bar');
+        const aiHpText = document.getElementById('ai-hp-text');
+        const aiHpBar = document.getElementById('ai-hp-bar');
+        const aiShieldText = document.getElementById('ai-shield-text');
+        const aiShieldBar = document.getElementById('ai-shield-bar');
+        const turnCounter = document.getElementById('turn-counter');
+        const gameStatus = document.getElementById('game-status');
+        const combatLog = document.getElementById('combat-log');
+        const particleContainer = document.getElementById('particle-container');
+
+        // Buttons
+        const btnAttack = document.getElementById('btn-attack');
+        const btnDefend = document.getElementById('btn-defend');
+        const btnTactical = document.getElementById('btn-tactical');
+        const btnRoll = document.getElementById('btn-roll');
+        const btnReset = document.getElementById('btn-reset');
+        const btnSoundToggle = document.getElementById('btn-sound-toggle');
+        const soundIcon = document.getElementById('sound-icon');
+
+        // Dynamic Text Panels
+        const selectedStanceName = document.getElementById('selected-stance-name');
+        const selectedStanceDesc = document.getElementById('selected-stance-desc');
+
+        // Modals
+        const modalRules = document.getElementById('modal-rules');
+        const modalRulesContent = document.getElementById('modal-rules-content');
+        const btnRules = document.getElementById('btn-rules');
+        const btnCloseRules = document.getElementById('btn-close-rules');
+
+        const modalGameOver = document.getElementById('modal-gameover');
+        const modalGameOverContent = document.getElementById('modal-gameover-content');
+        const gameoverIcon = document.getElementById('gameover-icon');
+        const gameoverTitle = document.getElementById('gameover-title');
+        const gameoverDesc = document.getElementById('gameover-desc');
+        const btnRestartGame = document.getElementById('btn-restart-game');
+
+        // --- Dice 3D Rotations Mapping ---
+        const diceRotations = {
+            1: { x: 0, y: 0 },
+            6: { x: 180, y: 0 },
+            2: { x: -90, y: 0 },
+            5: { x: 90, y: 0 },
+            3: { x: 0, y: -90 },
+            4: { x: 0, y: 90 }
+        };
+
+        // --- Event Listeners Initialization ---
+        function initEvents() {
+            // Stance choice logic
+            btnAttack.addEventListener('click', () => selectStance('attack'));
+            btnDefend.addEventListener('click', () => selectStance('defend'));
+            btnTactical.addEventListener('click', () => selectStance('tactical'));
+
+            // Main actions
+            btnRoll.addEventListener('click', () => handleRollClick());
+            btnReset.addEventListener('click', () => resetGame());
+            btnRestartGame.addEventListener('click', () => {
+                hideModal(modalGameOver);
+                resetGame();
+            });
+
+            // Help Modal
+            btnRules.addEventListener('click', () => showModal(modalRules, modalRulesContent));
+            btnCloseRules.addEventListener('click', () => hideModal(modalRules));
+            modalRules.addEventListener('click', (e) => {
+                if (e.target === modalRules) hideModal(modalRules);
+            });
+
+            // Audio Toggle
+            btnSoundToggle.addEventListener('click', () => {
+                sfx.enabled = !sfx.enabled;
+                if (sfx.enabled) {
+                    btnSoundToggle.className = "px-4 py-2 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-xs rounded-xl flex items-center gap-2 transition-all text-emerald-400";
+                    soundIcon.className = "fa-solid fa-volume-high";
+                    sfx.playShield();
+                } else {
+                    btnSoundToggle.className = "px-4 py-2 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-xs rounded-xl flex items-center gap-2 transition-all text-slate-500";
+                    soundIcon.className = "fa-solid fa-volume-xmark";
+                }
+            });
+        }
+
+        // --- Core Stance Selector ---
+        function selectStance(stance) {
+            if (gameState.currentTurn !== 'player' || gameState.isRolling) return;
+            
+            gameState.selectedStance = stance;
+            
+            // Remove active styles
+            btnAttack.classList.replace('from-rose-600', 'from-rose-500');
+            btnDefend.classList.replace('from-teal-600', 'from-teal-500');
+            btnTactical.classList.replace('from-sky-600', 'from-sky-500');
+
+            btnAttack.classList.remove('ring-4', 'ring-rose-500/50');
+            btnDefend.classList.remove('ring-4', 'ring-teal-500/50');
+            btnTactical.classList.remove('ring-4', 'ring-sky-500/50');
+
+            if (stance === 'attack') {
+                btnAttack.classList.replace('from-rose-500', 'from-rose-600');
+                btnAttack.classList.add('ring-4', 'ring-rose-500/50');
+                selectedStanceName.textContent = "🔥 돌격 공격";
+                selectedStanceName.className = "font-bold text-sm text-rose-400";
+                selectedStanceDesc.textContent = "주사위 합의 120%만큼 강력한 타격을 줍니다. 상대의 방어막 수치를 30% 무시하고 직격 대미지를 줍니다. 주사위 합이 짝수일 시 대미지가 1.5배 증폭됩니다.";
+            } else if (stance === 'defend') {
+                btnDefend.classList.replace('from-teal-500', 'from-teal-600');
+                btnDefend.classList.add('ring-4', 'ring-teal-500/50');
+                selectedStanceName.textContent = "🛡️ 수호 방어";
+                selectedStanceName.className = "font-bold text-sm text-teal-400";
+                selectedStanceDesc.textContent = "주사위 합의 180%만큼 방어막(최대 50)을 생성합니다. 추가로 체력을 10 회복합니다.";
+            } else if (stance === 'tactical') {
+                btnTactical.classList.replace('from-sky-500', 'from-sky-600');
+                btnTactical.classList.add('ring-4', 'ring-sky-500/50');
+                selectedStanceName.textContent = "⚡ 비기 전술";
+                selectedStanceName.className = "font-bold text-sm text-sky-400";
+                selectedStanceDesc.textContent = "두 주사위 눈이 동일할 경우(더블) 치명타(2.5배)가 발생합니다. 눈의 차이에 따른 고정 마법 피해(눈의 차이 x 6)를 무조건 입힙니다.";
+            }
+        }
+
+        // --- Modals Management ---
+        function showModal(modal, content) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }
+
+        function hideModal(modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            const content = modal.firstElementChild;
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+        }
+
+        // --- Particle & Combat Effects Helper ---
+        function spawnParticles(isPlayerTarget, type) {
+            const targetCard = isPlayerTarget ? document.getElementById('player-card') : document.getElementById('ai-card');
+            const rect = targetCard.getBoundingClientRect();
+            const containerRect = particleContainer.getBoundingClientRect();
+
+            const targetX = rect.left - containerRect.left + rect.width / 2;
+            const targetY = rect.top - containerRect.top + rect.height / 2;
+
+            const colors = {
+                damage: ['#f43f5e', '#ef4444', '#f59e0b'],
+                shield: ['#14b8a6', '#06b6d4', '#38bdf8'],
+                heal: ['#10b981', '#34d399', '#a7f3d0']
+            }[type];
+
+            for (let i = 0; i < 15; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const size = 6 + Math.random() * 8;
+                p.style.width = `${size}px`;
+                p.style.height = `${size}px`;
+                p.style.backgroundColor = color;
+                p.style.left = `${targetX + (Math.random() - 0.5) * 100}px`;
+                p.style.top = `${targetY + (Math.random() - 0.5) * 60}px`;
+                
+                // Random vector
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 20 + Math.random() * 40;
+                p.style.setProperty('--tx', `${Math.cos(angle) * speed}px`);
+                p.style.setProperty('--ty', `${Math.sin(angle) * speed - 50}px`);
+
+                particleContainer.appendChild(p);
+                setTimeout(() => p.remove(), 2000);
+            }
+        }
+
+        // Flash Card Visual Feedback
+        function flashCard(isPlayer, type) {
+            const card = isPlayer ? document.getElementById('player-card') : document.getElementById('ai-card');
+            const colorClass = type === 'damage' ? 'ring-4 ring-rose-500/80 bg-rose-950/20' : 'ring-4 ring-teal-500/80 bg-emerald-950/20';
+            
+            card.className += ` ${colorClass}`;
+            setTimeout(() => {
+                card.classList.remove('ring-4', 'ring-rose-500/80', 'ring-teal-500/80', 'bg-rose-950/20', 'bg-emerald-950/20');
+            }, 500);
+        }
+
+        // --- Game Logic Engines ---
+        
+        // Log System
+        function appendLog(message, type = 'system') {
+            const el = document.createElement('div');
+            let color = 'text-slate-300';
+            
+            if (type === 'player-info') color = 'text-sky-300 font-semibold';
+            else if (type === 'ai-info') color = 'text-rose-300 font-semibold';
+            else if (type === 'damage') color = 'text-rose-400 font-bold';
+            else if (type === 'defense') color = 'text-teal-400 font-bold';
+            else if (type === 'combo') color = 'text-amber-400 font-black';
+            else if (type === 'round') color = 'text-indigo-400 font-bold border-t border-slate-800 pt-1 mt-1';
+            
+            el.className = `${color} transition-all duration-300 translate-y-2 opacity-0`;
+            el.innerHTML = `[${new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${message}`;
+            
+            combatLog.appendChild(el);
+            
+            // Auto scroll
+            combatLog.scrollTop = combatLog.scrollHeight;
+            
+            setTimeout(() => {
+                el.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+        }
+
+        // Execute 3D Dice Spin
+        function rollDice3D(isPlayer, val1, val2) {
+            return new Promise((resolve) => {
+                sfx.playRoll();
+                
+                const prefix = isPlayer ? 'p-dice-' : 'a-dice-';
+                const dice1 = document.getElementById(`${prefix}1`);
+                const dice2 = document.getElementById(`${prefix}2`);
+
+                // Start rotational wild animation
+                dice1.classList.add('is-rolling');
+                dice2.classList.add('is-rolling');
+
+                setTimeout(() => {
+                    // Stop wild rotation
+                    dice1.classList.remove('is-rolling');
+                    dice2.classList.remove('is-rolling');
+
+                    // Calculate targets based on map
+                    const rot1 = diceRotations[val1];
+                    const rot2 = diceRotations[val2];
+
+                    // Assign precision rotations with additional 720 degree spin for dynamic impact
+                    dice1.style.transform = `rotateX(${rot1.x + 720}deg) rotateY(${rot1.y + 720}deg)`;
+                    dice2.style.transform = `rotateX(${rot2.x + 1080}deg) rotateY(${rot2.y + 720}deg)`;
+
+                    setTimeout(resolve, 1000); // Wait for the transition finish
+                }, 1000);
+            });
+        }
+
+        // Trigger action click
+        async function handleRollClick() {
+            if (gameState.isRolling || gameState.currentTurn !== 'player') return;
+            
+            gameState.isRolling = true;
+            btnRoll.disabled = true;
+            btnRoll.classList.add('opacity-50');
+            gameStatus.textContent = '주사위가 치열하게 굴러가는 중...';
+
+            // Generate player values
+            const val1 = Math.floor(Math.random() * 6) + 1;
+            const val2 = Math.floor(Math.random() * 6) + 1;
+            gameState.playerDiceResult = [val1, val2];
+
+            // 3D Roll Animation
+            await rollDice3D(true, val1, val2);
+
+            // Process player action results
+            resolveTurn('player', val1, val2, gameState.selectedStance);
+
+            // Check Game Over
+            if (checkGameOver()) return;
+
+            // Trigger AI Turn
+            gameState.currentTurn = 'ai';
+            btnRoll.classList.add('opacity-50');
+            gameStatus.innerHTML = '<span class="text-rose-400">알파다이스가 전술을 짜고 있습니다...</span>';
+
+            setTimeout(async () => {
+                // Decide AI stance
+                const aiStances = ['attack', 'defend', 'tactical'];
+                const aiStance = aiStances[Math.floor(Math.random() * aiStances.length)];
+                
+                // Generate AI values
+                const aiVal1 = Math.floor(Math.random() * 6) + 1;
+                const aiVal2 = Math.floor(Math.random() * 6) + 1;
+                gameState.aiDiceResult = [aiVal1, aiVal2];
+
+                appendLog(`알파다이스가 전술로 [${aiStance === 'attack' ? '돌격 공격' : aiStance === 'defend' ? '수호 방어' : '비기 전술'}]을(를) 정했습니다.`, 'ai-info');
+                
+                await rollDice3D(false, aiVal1, aiVal2);
+
+                resolveTurn('ai', aiVal1, aiVal2, aiStance);
+
+                // Round progression if AI turn finishes
+                if (!checkGameOver()) {
+                    gameState.currentTurn = 'player';
+                    gameState.round += 1;
+                    turnCounter.textContent = `ROUND ${gameState.round}`;
+                    appendLog(`라운드 ${gameState.round}가 시작됩니다.`, 'round');
+                    
+                    btnRoll.disabled = false;
+                    btnRoll.classList.remove('opacity-50');
+                    gameStatus.textContent = '내 턴입니다. 전술을 고르고 주사위를 굴리세요!';
+                    gameState.isRolling = false;
+                }
+            }, 1500);
+        }
+
+        // Calculations & UI Updates for turn resolutions
+        function resolveTurn(attacker, val1, val2, stance) {
+            const sum = val1 + val2;
+            const isDouble = val1 === val2;
+            const diff = Math.abs(val1 - val2);
+            
+            let attackerObj = attacker === 'player' ? gameState.player : gameState.ai;
+            let defenderObj = attacker === 'player' ? gameState.ai : gameState.player;
+            let attackerName = attacker === 'player' ? '플레이어' : '알파다이스';
+            let defenderName = attacker === 'player' ? '알파다이스' : '플레이어';
+            let logType = attacker === 'player' ? 'player-info' : 'ai-info';
+
+            appendLog(`${attackerName}의 주사위 결과: [${val1}], [${val2}] (합계: ${sum})`, logType);
+
+            // Combo validation
+            let multiplier = 1.0;
+            if (isDouble) {
+                appendLog(`⚡ 더블 보너스 발생! 수치가 강화됩니다.`, 'combo');
+                multiplier += 0.5;
+            }
+            if (sum >= 10) {
+                appendLog(`⭐ 강렬한 운명 보너스! (주사위 합 10 이상)`, 'combo');
+                multiplier += 0.3;
+            }
+
+            if (stance === 'attack') {
+                // Damage calculation
+                let damage = Math.round(sum * 1.2 * multiplier);
+                
+                // Even sum buff
+                if (sum % 2 === 0) {
+                    damage = Math.round(damage * 1.5);
+                    appendLog(`🔥 주사위 합 짝수 보너스 가동! (피해량 1.5배 증가)`, 'combo');
+                }
+
+                // Shield Pierce (30%)
+                const pierceDmg = Math.round(damage * 0.3);
+                const shieldDmg = damage - pierceDmg;
+
+                // Process shield & hp damage
+                let absorbed = 0;
+                if (defenderObj.shield > 0) {
+                    absorbed = Math.min(defenderObj.shield, shieldDmg);
+                    defenderObj.shield -= absorbed;
+                    const netDmg = (shieldDmg - absorbed) + pierceDmg;
+                    defenderObj.hp = Math.max(0, defenderObj.hp - netDmg);
+                    
+                    appendLog(`${defenderName}의 방어막이 ${absorbed} 피해를 흡수했고, ${netDmg}의 직격 피해가 발생했습니다.`, 'damage');
+                } else {
+                    defenderObj.hp = Math.max(0, defenderObj.hp - damage);
+                    appendLog(`${defenderName}가 완전히 공격에 노출되어 ${damage}의 직격 피해를 받았습니다.`, 'damage');
+                }
+
+                sfx.playHit();
+                spawnParticles(attacker === 'player' ? false : true, 'damage');
+                flashCard(attacker === 'player' ? false : true, 'damage');
+
+            } else if (stance === 'defend') {
+                // Shield charge calculation
+                const shieldGain = Math.round(sum * 1.8 * multiplier);
+                const oldShield = attackerObj.shield;
+                attackerObj.shield = Math.min(attackerObj.maxShield, attackerObj.shield + shieldGain);
+                
+                // Heal mechanics
+                const healAmt = 10;
+                attackerObj.hp = Math.min(attackerObj.maxHp, attackerObj.hp + healAmt);
+
+                appendLog(`${attackerName}가 방어막을 +${attackerObj.shield - oldShield}만큼 보강하고 체력을 +${healAmt} 회복했습니다.`, 'defense');
+                
+                sfx.playShield();
+                spawnParticles(attacker === 'player' ? true : false, 'shield');
+                flashCard(attacker === 'player' ? true : false, 'defense');
+
+            } else if (stance === 'tactical') {
+                // Tactical rules
+                let damage = Math.round(sum * 0.9 * multiplier);
+                
+                if (isDouble) {
+                    damage = Math.round(damage * 2.5);
+                    appendLog(`🎯 치명타 발동! 더블 눈금 특화 2.5배 치명 피해를 입힙니다.`, 'combo');
+                }
+
+                // Extra fixed magic damage
+                const magicDmg = diff * 6;
+                let totalDmg = damage + magicDmg;
+
+                // Simple HP Reduction (Ignores shield entirely if critical double)
+                if (isDouble) {
+                    defenderObj.hp = Math.max(0, defenderObj.hp - totalDmg);
+                    appendLog(`${attackerName}의 비기 공격이 방어막을 완전히 우회하여 ${totalDmg}의 전술 피해를 입혔습니다.`, 'damage');
+                } else {
+                    // Standard shield logic
+                    if (defenderObj.shield > 0) {
+                        let absorbed = Math.min(defenderObj.shield, totalDmg);
+                        defenderObj.shield -= absorbed;
+                        defenderObj.hp = Math.max(0, defenderObj.hp - (totalDmg - absorbed));
+                        appendLog(`${defenderName}의 방어막이 ${absorbed} 피해를 흡수했고, ${totalDmg - absorbed}의 전술 피해를 입었습니다.`, 'damage');
+                    } else {
+                        defenderObj.hp = Math.max(0, defenderObj.hp - totalDmg);
+                        appendLog(`${defenderName}에게 ${totalDmg}의 전술 대미지를 입혔습니다. (눈의 차이 마법고정뎀: ${magicDmg} 포함)`, 'damage');
+                    }
+                }
+
+                sfx.playHit();
+                spawnParticles(attacker === 'player' ? false : true, 'damage');
+                flashCard(attacker === 'player' ? false : true, 'damage');
+            }
+
+            // Sync visual bars
+            updateStatusUI();
+        }
+
+        // UI Refresh Loop
+        function updateStatusUI() {
+            // Player
+            playerHpText.textContent = `${gameState.player.hp} / ${gameState.player.maxHp}`;
+            playerHpBar.style.width = `${(gameState.player.hp / gameState.player.maxHp) * 100}%`;
+            playerShieldText.textContent = `${gameState.player.shield} / ${gameState.player.maxShield}`;
+            playerShieldBar.style.width = `${(gameState.player.shield / gameState.player.maxShield) * 100}%`;
+
+            // AI
+            aiHpText.textContent = `${gameState.ai.hp} / ${gameState.ai.maxHp}`;
+            aiHpBar.style.width = `${(gameState.ai.hp / gameState.ai.maxHp) * 100}%`;
+            aiShieldText.textContent = `${gameState.ai.shield} / ${gameState.ai.maxShield}`;
+            aiShieldBar.style.width = `${(gameState.ai.shield / gameState.ai.maxShield) * 100}%`;
+        }
+
+        // Evaluate victory conditions
+        function checkGameOver() {
+            if (gameState.player.hp <= 0) {
+                // Loss
+                sfx.playLose();
+                gameoverIcon.textContent = '💀';
+                gameoverTitle.textContent = 'DEFEAT';
+                gameoverTitle.className = "text-2xl font-black text-rose-500 mb-2 font-orbit";
+                gameoverDesc.textContent = '알파다이스에게 무릎을 꿇었습니다. 행운이 적에게 따랐던 모양입니다.';
+                showModal(modalGameOver, modalGameOverContent);
+                return true;
+            } else if (gameState.ai.hp <= 0) {
+                // Win
+                sfx.playWin();
+                gameoverIcon.textContent = '🏆';
+                gameoverTitle.textContent = 'VICTORY';
+                gameoverTitle.className = "text-2xl font-black text-amber-400 mb-2 font-orbit";
+                gameoverDesc.textContent = '승리했습니다! 화려한 전술과 행운으로 알파다이스를 정복하셨습니다!';
+                showModal(modalGameOver, modalGameOverContent);
+                return true;
+            }
+            return false;
+        }
+
+        // Reset system to zero
+        function resetGame() {
+            gameState = {
+                player: { hp: 100, maxHp: 100, shield: 0, maxShield: 50 },
+                ai: { hp: 100, maxHp: 100, shield: 0, maxShield: 50 },
+                currentTurn: 'player',
+                round: 1,
+                selectedStance: 'attack',
+                isRolling: false,
+                playerDiceResult: [1, 1],
+                aiDiceResult: [1, 1]
+            };
+
+            updateStatusUI();
+            selectStance('attack');
+            
+            turnCounter.textContent = 'ROUND 1';
+            gameStatus.textContent = '내 턴입니다. 주사위를 굴려 승리를 쟁취하세요!';
+            
+            btnRoll.disabled = false;
+            btnRoll.classList.remove('opacity-50');
+
+            // Clear visual dice rotation to defaults
+            document.getElementById('p-dice-1').style.transform = 'rotateX(0deg) rotateY(0deg)';
+            document.getElementById('p-dice-2').style.transform = 'rotateX(0deg) rotateY(0deg)';
+            document.getElementById('a-dice-1').style.transform = 'rotateX(0deg) rotateY(0deg)';
+            document.getElementById('a-dice-2').style.transform = 'rotateX(0deg) rotateY(0deg)';
+
+            combatLog.innerHTML = `
+                <div class="text-slate-400">[시스템] 게임 보드가 초기화되었습니다.</div>
+                <div class="text-slate-400">[시스템] 전략을 수립하고 전장으로 나아가십시오!</div>
+            `;
+            
+            sfx.playShield();
+        }
+
+        // --- Run on DOM Load ---
+        window.onload = function() {
+            initEvents();
+            updateStatusUI();
+            selectStance('attack');
+        };
+    </script>
+</body>
+</html>

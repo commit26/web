@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자이언트 GK 승부차기 게임</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #020617, #0f172a);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            color: #fbbf24;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        /* 네온 스타일 전광판 */
+        .scoreboard {
+            display: flex;
+            gap: 30px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 12px 40px;
+            border-radius: 16px;
+            border: 2px solid #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            z-index: 50;
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .score-val {
+            color: #4ade80;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        .attempts-val {
+            color: #f87171;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
+        }
+
+        /* 경기장 레이아웃 */
+        .pitch-container {
+            position: relative;
+            width: 100%;
+            max-width: 680px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .pitch {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: radial-gradient(circle at bottom, #16a34a, #166534);
+            border: 4px solid rgba(255, 255, 255, 0.9);
+            border-bottom: none;
+            border-radius: 16px 16px 0 0;
+            overflow: hidden;
+            cursor: none; /* 조준 데코레이션 사용으로 기본 마우스 숨김 */
+        }
+
+        /* 잔디 패턴 효과 */
+        .pitch::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 45px,
+                rgba(0, 0, 0, 0.05) 45px,
+                rgba(0, 0, 0, 0.05) 90px
+            );
+            pointer-events: none;
+        }
+
+        /* 골대 구조물 - 실제 위치 구현 */
+        .goalpost {
+            position: absolute;
+            top: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 480px;
+            height: 220px;
+            border: 10px solid #ffffff;
+            border-bottom: none;
+            background: rgba(255, 255, 255, 0.06);
+            /* 그물 격자 무늬 디자인 */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.12) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.12) 2px, transparent 2px);
+            background-size: 22px 22px;
+            box-shadow: inset 0 20px 30px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        /* 자이언트 네모 골키퍼 스타일링 (가운데 대기 상태) */
+        .goalkeeper {
+            position: absolute;
+            /* 골대 안(하단 라인) 한가운데 고정 배치 */
+            bottom: 165px; 
+            left: 50%;
+            transform: translateX(-50%); /* 중앙 정렬 */
+            width: 115px; 
+            height: 200px; /* 골대 높이에 인접한 압도적 피지컬 */
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); /* 기본 블루 네온 */
+            border: 4px solid #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 5;
+            user-select: none;
+            
+            /* 내부 GK 텍스트 배치 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            font-weight: 950;
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 2px 2px 5px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+            
+            /* 차기 전 숨쉬는 듯한 미세한 대기 애니메이션 */
+            animation: gk-idle 2s ease-in-out infinite;
+        }
+
+        /* 대기 상태 숨쉬기 효과 */
+        @keyframes gk-idle {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.02);
+                box-shadow: 0 0 35px rgba(59, 130, 246, 0.8);
+            }
+        }
+
+        /* 점프 상태 애니메이션 정의 */
+        .gk-jump-left {
+            animation: none;
+            transform: translateX(-50%) translate(-150px, -15px) rotate(-12deg);
+            background: linear-gradient(135deg, #ef4444, #b91c1c); /* 다이내믹 레드 네온 */
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.8);
+        }
+
+        .gk-jump-right {
+            animation: none;
+            transform: translateX(-50%) translate(150px, -15px) rotate(12deg);
+            background: linear-gradient(135deg, #ef4444, #b91c1c); /* 다이내믹 레드 네온 */
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.8);
+        }
+        
+        /* 가운데 점프 수비 */
+        .gk-jump-middle {
+            animation: none;
+            transform: translateX(-50%) translate(0, -30px) scale(0.95);
+            background: linear-gradient(135deg, #eab308, #ca8a04); /* 다이내믹 옐로우 네온 */
+            box-shadow: 0 0 40px rgba(234, 179, 8, 0.8);
+        }
+
+        /* 에이밍 크로스헤어 */
+        .aim-target {
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            border: 3px dashed #fbbf24;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 40;
+            animation: rotate-target 4s linear infinite;
+        }
+
+        .aim-target::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background-color: #fbbf24;
+            border-radius: 50%;
+        }
+
+        @keyframes rotate-target {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* 축구공 */
+        .ball {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 42px;
+            height: 42px;
+            background: 
+                radial-gradient(circle at 35% 35%, #ffffff 30%, #cbd5e1 100%);
+            border: 3px solid #020617;
+            border-radius: 50%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 15;
+        }
+
+        /* 피파식 파워 게이지 바 */
+        .power-bar-container {
+            width: 100%;
+            max-width: 400px;
+            height: 24px;
+            background-color: rgba(15, 23, 42, 0.8);
+            border: 2px solid #ffffff;
+            border-radius: 12px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .power-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #10b981;
+            transition: width 0.05s linear;
+        }
+
+        /* 완벽한 파워 표시 라인 (과충전 경고 구역) */
+        .power-marker {
+            position: absolute;
+            top: 0;
+            left: 90%;
+            width: 3px;
+            height: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 0 5px #ff4747;
+            z-index: 2;
+        }
+
+        /* 하단 안내 가이드 */
+        .instruction {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 10px 25px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 50;
+            text-align: center;
+        }
+
+        /* 결과 알림 */
+        .result-message {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 4rem;
+            font-weight: 900;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .result-message.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .goal-text { 
+            color: #4ade80; 
+            text-shadow: 0 0 30px rgba(74, 222, 128, 0.8), 2px 2px 4px rgba(0,0,0,0.8); 
+        }
+        .save-text { 
+            color: #f87171; 
+            text-shadow: 0 0 30px rgba(248, 113, 113, 0.8), 2px 2px 4px rgba(0,0,0,0.8); 
+        }
+
+        /* [필수 사항] 메인 화면 이동 버튼 */
+        .home-link {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: #fbbf24;
+            color: #020617;
+            padding: 14px 28px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(251, 191, 36, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 200;
+        }
+
+        .home-link:hover {
+            background-color: #f59e0b;
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(245, 158, 11, 0.4);
+        }
+
+        .home-link::before {
+            content: '🏠';
+        }
+    </style>
+</head>
+<body>
+
+    <h1>자이언트 GK 승부차기</h1>
+    <div class="subtitle">FIFA 파워 바 컨트롤 탑재! 게이지를 적절하게 모아 슛을 날려보세요!</div>
+
+    <!-- 스코어보드 -->
+    <div class="scoreboard">
+        <div class="score-box">
+            <span class="score-label">득점 (GOALS)</span>
+            <span id="score" class="score-val">0</span>
+        </div>
+        <div style="border-left: 1px solid rgba(255,255,255,0.1); margin: 0 8px;"></div>
+        <div class="score-box">
+            <span class="score-label">시도 (SHOTS)</span>
+            <span id="attempts" class="attempts-val">0</span>
+        </div>
+    </div>
+
+    <!-- 경기장 전체 박스 -->
+    <div class="pitch-container">
+        <div class="pitch" id="pitch">
+            
+            <!-- 자이언트 네모 골키퍼 -->
+            <div class="goalkeeper" id="gk">GK</div>
+            
+            <!-- 골대 구조물 -->
+            <div class="goalpost" id="goalpost"></div>
+
+            <!-- 조준 크로스헤어 타겟 -->
+            <div class="aim-target" id="aimTarget"></div>
+            
+            <!-- 플레이어 볼 -->
+            <div class="ball" id="ball"></div>
+        </div>
+    </div>
+
+    <!-- 파워 바 -->
+    <div class="power-bar-container" id="powerBarContainer">
+        <div class="power-bar-fill" id="powerBarFill"></div>
+        <div class="power-marker"></div>
+    </div>
+
+    <div class="instruction">
+        <span>🎮</span> 골대 안에 마우스를 대어 조준한 상태에서 <strong>[D] 키를 누르고 떼며</strong> 세기를 정하세요!
+    </div>
+    
+    <!-- 실시간 상태 알림 패널 -->
+    <div class="result-message" id="resultMsg">GOAL!</div>
+
+    <!-- [필수] 메인 화면 연결 링크 -->
+    <a href="index.html" class="home-link">메인으로 돌아가기</a>
+
+    <script>
+        const pitch = document.getElementById('pitch');
+        const gk = document.getElementById('gk');
+        const ball = document.getElementById('ball');
+        const aimTarget = document.getElementById('aimTarget');
+        const scoreEl = document.getElementById('score');
+        const attemptsEl = document.getElementById('attempts');
+        const resultMsg = document.getElementById('resultMsg');
+        const powerBarContainer = document.getElementById('powerBarContainer');
+        const powerBarFill = document.getElementById('powerBarFill');
+
+        // 골대 수치 (판정용 절대값 설정)
+        const goalWidth = 480;
+        const goalTop = 35; 
+
+        let score = 0;
+        let attempts = 0;
+        let isShooting = false;
+        let isCharging = false;
+        
+        let aimX = null;
+        let aimY = null;
+        let chargePower = 0;
+        let chargeAnimation = null;
+
+        // 초기 골키퍼 정중앙 고정 배치
+        window.addEventListener('load', () => {
+             gk.style.left = '50%';
+        });
+
+        // 경기장 위 마우스 조준 트래킹
+        pitch.addEventListener('mousemove', (e) => {
+            if (isShooting || isCharging) {
+                aimTarget.style.display = 'none';
+                return;
+            }
+
+            const rect = pitch.getBoundingClientRect();
+            aimX = e.clientX - rect.left;
+            aimY = e.clientY - rect.top;
+
+            // 골대 박스 영역 계산
+            const goalLeft = (pitch.clientWidth - goalWidth) / 2;
+            const goalRight = goalLeft + goalWidth;
+            const goalBottom = goalTop + 220; // 골대 높이
+
+            // 골대 내부에 마우스가 들어왔을 때만 크로스헤어 조준선 표시
+            const isInsideGoal = aimX >= goalLeft && aimX <= goalRight && aimY >= goalTop && aimY <= goalBottom;
+
+            if (isInsideGoal) {
+                aimTarget.style.left = aimX + 'px';
+                aimTarget.style.top = aimY + 'px';
+                aimTarget.style.display = 'block';
+            } else {
+                aimTarget.style.display = 'none';
+            }
+        });
+
+        pitch.addEventListener('mouseleave', () => {
+            aimTarget.style.display = 'none';
+        });
+
+        // --- 파워 충전 이벤트 핸들러 (D 키) ---
+        window.addEventListener('keydown', (e) => {
+            // 'd' 또는 'D' 또는 한글 입력 상태에서의 'ㅇ' 대응
+            if ((e.key === 'd' || e.key === 'D' || e.key === 'ㅇ' || e.key === 'O') && !isShooting && !isCharging) {
+                
+                // 타겟 조준 상태가 아니면 충전 불가
+                if (aimTarget.style.display !== 'block' || aimX === null || aimY === null) {
+                    showWarningMsg("먼저 골대 안을 조준해주세요! 🎯", 1000);
+                    return;
+                }
+
+                startCharging();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if ((e.key === 'd' || e.key === 'D' || e.key === 'ㅇ' || e.key === 'O') && isCharging) {
+                shootBall();
+            }
+        });
+
+        // 파워 충전 루프
+        function startCharging() {
+            isCharging = true;
+            chargePower = 0;
+            powerBarContainer.style.opacity = '1';
+            
+            function updatePower() {
+                if (!isCharging) return;
+                
+                chargePower += 2.5; // 차오르는 속도 조절
+                if (chargePower > 100) chargePower = 100;
+                
+                powerBarFill.style.width = chargePower + '%';
+
+                // 파워 세기별 컬러 렌더링 (FIFA 감성)
+                if (chargePower > 90) {
+                    powerBarFill.style.backgroundColor = '#ef4444'; // 너무 강함 (레드)
+                } else if (chargePower > 60) {
+                    powerBarFill.style.backgroundColor = '#fbbf24'; // 적절하게 강함 (옐로우)
+                } else {
+                    powerBarFill.style.backgroundColor = '#10b981'; // 안전하게 약함 (그린)
+                }
+
+                chargeAnimation = requestAnimationFrame(updatePower);
+            }
+            chargeAnimation = requestAnimationFrame(updatePower);
+        }
+
+        // 공 발사 실행
+        function shootBall() {
+            isCharging = false;
+            cancelAnimationFrame(chargeAnimation);
+            aimTarget.style.display = 'none'; // 발사하면 조준점 아웃
+            isShooting = true;
+
+            attempts++;
+            attemptsEl.textContent = attempts;
+
+            // 골키퍼 무작위 점프 방향 결정
+            const jumpDirections = ["left", "middle", "right"];
+            const gkJumpDirection = jumpDirections[Math.floor(Math.random() * jumpDirections.length)];
+            gk.classList.add(`gk-jump-${gkJumpDirection}`);
+
+            // 파워에 따른 물리 속도(Transition 시간) 적용
+            // 파워가 높을수록 날아가는 비행 시간이 짧아집니다 (엄청 빨라짐)
+            const flightDuration = 0.85 - (chargePower / 100) * 0.55; // 0.85초에서 최고 0.3초 사이로 작동
+            ball.style.transition = `all ${flightDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+
+            // 파워에 따른 조준 보정값 (90% 넘어가면 홈런!)
+            let targetX = aimX;
+            let targetY = aimY;
+            let isOverpowered = false;
+
+            if (chargePower > 90) {
+                isOverpowered = true;
+                // 공이 크로스바 훨씬 위로 날아가며 빗나가게 유도
+                targetY = goalTop - 80;
+                targetX += (Math.random() - 0.5) * 140; // 약간 무작위 좌우 편차 추가
+            }
+
+            // 볼 날아가기 및 스핀 연출
+            ball.style.left = targetX + 'px';
+            ball.style.top = targetY + 'px';
+            ball.style.transform = 'translateX(-50%) scale(0.55) rotate(1440deg)';
+            ball.style.boxShadow = '0 5px 10px rgba(0,0,0,0.7)';
+
+            // 비행이 완료되는 시점에 판정
+            setTimeout(() => {
+                const goalLeft = (pitch.clientWidth - goalWidth) / 2;
+
+                // 플레이어가 노린 조준 방향 계산 (왼쪽/가운데/오른쪽)
+                const shootXLocation = (aimX <= (goalLeft + goalWidth / 3)) ? "left" :
+                                         (aimX >= (goalLeft + goalWidth * 2 / 3)) ? "right" : "middle";
+
+                if (isOverpowered) {
+                    // 1. 게이지가 너무 높은 경우 (홈런)
+                    resultMsg.textContent = "MISSED! 🚀 (너무 강함)";
+                    resultMsg.className = "result-message show save-text";
+                } else if (chargePower < 25) {
+                    // 2. 게이지가 터무니없이 낮은 경우 (키퍼 품에 부드럽게 안김)
+                    resultMsg.textContent = "SAVED! 🧤 (너무 약함)";
+                    resultMsg.className = "result-message show save-text";
+                } else {
+                    // 3. 정상 파워 범위 슈팅 -> 골키퍼의 점프 방향과 조준 방향 일치 여부 비교
+                    const isSaved = (gkJumpDirection === shootXLocation);
+
+                    if (isSaved) {
+                        resultMsg.textContent = "SAVED! 🧤";
+                        resultMsg.className = "result-message show save-text";
+                    } else {
+                        score++;
+                        scoreEl.textContent = score;
+                        resultMsg.textContent = "GOAL!! ⚽🔥";
+                        resultMsg.className = "result-message show goal-text";
+                    }
+                }
+
+                // 1.5초 후 깔끔하게 리셋
+                setTimeout(() => {
+                    resultMsg.className = "result-message"; 
+                    powerBarContainer.style.opacity = '0';
+                    powerBarFill.style.width = '0%';
+                    
+                    // 골키퍼 대기 복귀
+                    gk.classList.remove(`gk-jump-left`, `gk-jump-middle`, `gk-jump-right`);
+                    
+                    // 축구공 리셋
+                    ball.style.transition = 'none'; 
+                    ball.style.left = '50%';
+                    ball.style.top = '';
+                    ball.style.bottom = '25px';
+                    ball.style.transform = 'translateX(-50%) scale(1) rotate(0deg)';
+                    ball.style.boxShadow = '0 10px 20px rgba(0,0,0,0.5)';
+                    
+                    setTimeout(() => {
+                        ball.style.transition = 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        isShooting = false;
+                    }, 50);
+                }, 1500);
+
+            }, flightDuration * 1000);
+        }
+
+        function showWarningMsg(msg, time) {
+            resultMsg.textContent = msg;
+            resultMsg.className = "result-message show save-text";
+            setTimeout(() => {
+                resultMsg.className = "result-message";
+            }, time);
+        }
+    </script>
+</body>
+</html>

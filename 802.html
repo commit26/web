@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시간을 담은 디데이 대시보드</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 80px 20px 40px 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; transition: background 1s ease; }
+        .home-btn { position: absolute; top: 20px; left: 20px; text-decoration: none; font-size: 16px; font-weight: bold; padding: 8px 16px; background-color: rgba(255, 255, 255, 0.8); border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: all 0.3s ease; color: #2c3e50; }
+        .home-btn:hover { transform: scale(1.05); background-color: rgba(255, 255, 255, 1); }
+        body.morning { background: linear-gradient(135deg, #73a6fb 0%, #a1c4fd 100%); }
+        body.afternoon { background: linear-gradient(135deg, #fc8e57 0%, #fbc2eb 100%); }
+        body.night { background: linear-gradient(135deg, #111d42 0%, #293241 100%); }
+        body.night h1.main-title { color: #ffffff; }
+        body.night .home-btn { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
+        body.night .home-btn:hover { background-color: rgba(255, 255, 255, 0.3); }
+        .sky-status { font-size: 50px; margin-bottom: 10px; animation: float 3s ease-in-out infinite; }
+        h1.main-title { color: #2c3e50; margin-bottom: 30px; font-size: 28px; transition: color 1s ease; }
+        .grid-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 1000px; width: 100%; }
+        .card { background-color: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); text-align: center; width: 200px; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .title { font-size: 18px; color: #333; font-weight: bold; margin-bottom: 5px; }
+        .date { font-size: 12px; color: #999; margin-bottom: 15px; }
+        .dday { font-size: 36px; font-weight: bold; color: #e74c3c; }
+        .dday.plus { color: #3498db; }
+        .dday.today { color: #2ecc71; font-size: 32px; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+    </style>
+</head>
+<body id="theme-body">
+    <a href="index.html" class="home-btn">🏠 홈으로</a>
+    <div class="sky-status" id="sky-icon">☀️</div>
+    <h1 class="main-title">📅 나의 디데이 대시보드</h1>
+    <div class="grid-container" id="dday-grid"></div>
+    <script>
+        const ddayList = [
+            { title: "6월 모의고사", date: "2026-06-04" },
+            { title: "여름 방학", date: "2026-07-21" },
+            { title: "기말 고사", date: "2026-06-22" },
+            { title: "겨울 방학", date: "2026-12-31" },
+            { title: "크리스마스", date: "2026-12-25" }
+        ];
+        function applyTimeTheme() {
+            const body = document.getElementById('theme-body');
+            const icon = document.getElementById('sky-icon');
+            const currentHour = new Date().getHours();
+            if (currentHour >= 6 && currentHour < 15) { body.className = 'morning'; icon.innerText = '☀️'; }
+            else if (currentHour >= 15 && currentHour < 20) { body.className = 'afternoon'; icon.innerText = '🌇'; }
+            else { body.className = 'night'; icon.innerText = '✨🌙✨'; }
+        }
+        function renderDDays() {
+            const grid = document.getElementById('dday-grid');
+            const today = new Date(); today.setHours(0,0,0,0);
+            ddayList.forEach(item => {
+                const target = new Date(item.date); target.setHours(0,0,0,0);
+                const difference = target.getTime() - today.getTime();
+                const ddayCount = Math.ceil(difference / (1000 * 60 * 60 * 24));
+                let ddayText = ""; let classType = "";
+                if (ddayCount > 0) { ddayText = `D-${ddayCount}`; }
+                else if (ddayCount === 0) { ddayText = "D-Day 🎉"; classType = "today"; }
+                else { ddayText = `D+${Math.abs(ddayCount)}`; classType = "plus"; }
+                const cardHtml = `<div class="card"><div class="title">${item.title}</div><div class="date">${item.date}</div><div class="dday ${classType}">${ddayText}</div></div>`;
+                grid.innerHTML += cardHtml;
+            });
+        }
+        applyTimeTheme(); renderDDays();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스트레스 버스터 (Stress Buster)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* 브라우저 기본 스크롤 및 화면 흔들림 제어 */
+            background-color: #0f172a;
+        }
+        canvas {
+            image-rendering: pixelated;
+            touch-action: none; /* 터치 드래그 최적화 */
+        }
+    </style>
+</head>
+<body class="overflow-hidden h-screen w-screen flex flex-col text-slate-100">
+
+    <!-- 상단 헤더 / 모드 선택기 -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 z-10 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+        <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <!-- 메인으로 돌아가기 링크 버튼 -->
+            <a href="index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors">
+                <i data-lucide="home" class="w-3.5 h-3.5"></i>
+                메인으로
+            </a>
+
+            <div class="flex items-center gap-2">
+                <div class="bg-rose-500 text-white p-2 rounded-lg shadow-lg shadow-rose-500/30">
+                    <i data-lucide="zap" class="w-5 h-5 animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-rose-400 to-amber-400 bg-clip-text text-transparent">스트레스 버스터</h1>
+                    <p class="text-[10px] text-slate-400 leading-none mt-0.5">터치하고 깨뜨리며 스트레스를 날려보세요!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모드 셀렉터 -->
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button id="btn-bubble" onclick="switchMode('bubble')" class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all duration-200 bg-rose-500 text-white shadow-md">
+                <i data-lucide="circle-dot" class="w-4 h-4"></i>
+                무한 뽁뽁이
+            </button>
+            <button id="btn-smash" onclick="switchMode('smash')" class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all duration-200 text-slate-400 hover:text-white">
+                <i data-lucide="hammer" class="w-4 h-4"></i>
+                스트레스 격파
+            </button>
+            <button id="btn-zen" onclick="switchMode('zen')" class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all duration-200 text-slate-400 hover:text-white">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                힐링 파티클
+            </button>
+        </div>
+
+        <!-- 볼륨 및 가이드 -->
+        <div class="flex items-center gap-3">
+            <button id="btn-sound" onclick="toggleMute()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors">
+                <i id="sound-icon" data-lucide="volume-2" class="w-5 h-5"></i>
+            </button>
+            <button onclick="showHelpModal()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors">
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 게임 캔버스 영역 -->
+    <main class="flex-grow relative w-full overflow-hidden bg-slate-950">
+        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block cursor-pointer"></canvas>
+        
+        <!-- 하단 햅틱/피드백 오버레이 안내 -->
+        <div id="interaction-hint" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-full text-xs text-slate-400 pointer-events-none flex items-center gap-2 shadow-lg transition-opacity duration-300">
+            <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 animate-bounce"></i>
+            <span id="hint-text">화면을 마음껏 클릭하거나 터치해보세요!</span>
+        </div>
+    </main>
+
+    <!-- 도움말 모달 -->
+    <div id="help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="hideHelpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-rose-400">
+                <i data-lucide="info" class="w-6 h-6"></i> 스트레스 버스터 가이드
+            </h2>
+            <div class="space-y-4 text-sm text-slate-300">
+                <div class="flex gap-3 items-start">
+                    <span class="p-1.5 bg-rose-500/20 text-rose-400 rounded-md shrink-0 mt-0.5"><i data-lucide="circle-dot" class="w-4 h-4"></i></span>
+                    <div>
+                        <h3 class="font-bold text-white">무한 뽁뽁이</h3>
+                        <p class="text-slate-400">버블을 탭해 터트립니다. 마음껏 누르다 보면 어느새 차분해집니다. 터뜨린 버블은 곧 복원됩니다.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="p-1.5 bg-amber-500/20 text-amber-400 rounded-md shrink-0 mt-0.5"><i data-lucide="hammer" class="w-4 h-4"></i></span>
+                    <div>
+                        <h3 class="font-bold text-white">스트레스 격파</h3>
+                        <p class="text-slate-400">유리창, 유리병, 도자기 그릇 등이 등장합니다. 화면을 터치해 무거운 쇠구슬을 발사해 시원하게 부수세요! 쾌감 넘치는 파괴 효과음이 재생됩니다.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-md shrink-0 mt-0.5"><i data-lucide="sparkles" class="w-4 h-4"></i></span>
+                    <div>
+                        <h3 class="font-bold text-white">힐링 파티클</h3>
+                        <p class="text-slate-400">손가락이나 마우스를 대고 드래그하면 은은한 소리와 함께 별빛 오로라가 생겨납니다. 마음을 안정시키는 편안한 모드입니다.</p>
+                    </div>
+                </div>
+                <div class="p-3 bg-slate-950 rounded-lg text-xs text-rose-400 text-center border border-slate-800">
+                    💡 사운드를 켜면 100배 더 짜릿하게 즐길 수 있습니다!
+                </div>
+            </div>
+            <button onclick="hideHelpModal()" class="w-full mt-5 py-2.5 bg-rose-500 hover:bg-rose-600 transition-colors text-white font-bold rounded-xl shadow-lg shadow-rose-500/20">
+                시작하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 스크립트 작성 -->
+    <script>
+        // Lucide 아이콘 초기화
+        lucide.createIcons();
+
+        // --- 전역 설정 및 상태 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentMode = 'bubble'; // 'bubble', 'smash', 'zen'
+        let isMuted = false;
+        let animationFrameId = null;
+
+        // 통합 포인터 상태 관리
+        const pointer = { x: 0, y: 0, isDown: false };
+
+        // 색상 팔레트
+        const colors = {
+            bubbles: ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9'],
+            shards: ['#ffffff', '#cbd5e1', '#94a3b8', '#38bdf8', '#0284c7', '#f43f5e', '#f59e0b'],
+            zen: ['#38bdf8', '#818cf8', '#fb7185', '#34d399', '#fbbf24', '#c084fc']
+        };
+
+        // --- 사운드 제어 (Web Audio API) 및 동시성 억제 ---
+        let audioCtx = null;
+        let lastSoundTime = 0;
+        const SOUND_COOLDOWN = 35; // 연속 사운드 발생 시의 안정적인 시간 간격 (ms)
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const soundIcon = document.getElementById('sound-icon');
+            if (isMuted) {
+                soundIcon.setAttribute('data-lucide', 'volume-x');
+                soundIcon.classList.add('text-rose-500');
+            } else {
+                soundIcon.setAttribute('data-lucide', 'volume-2');
+                soundIcon.classList.remove('text-rose-500');
+                initAudio();
+            }
+            lucide.createIcons();
+        }
+
+        // 1. 버블 팝 효과음
+        function playPopSound(freqMod = 1) {
+            if (isMuted) return;
+            const now = Date.now();
+            if (now - lastSoundTime < SOUND_COOLDOWN) return; // 연속 음 발생 억제로 과부하 렉 차단
+            lastSoundTime = now;
+
+            initAudio();
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                const baseFreq = (400 + Math.random() * 150) * freqMod;
+                osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch (e) {
+                console.warn("Audio Playback Stopped:", e);
+            }
+        }
+
+        // 2. 파괴 효과음
+        function playSmashSound() {
+            if (isMuted) return;
+            initAudio();
+            try {
+                const bufferSize = audioCtx.sampleRate * 0.3;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(2000 + Math.random() * 800, audioCtx.currentTime);
+
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+
+                const osc = audioCtx.createOscillator();
+                const oscGain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(15, audioCtx.currentTime + 0.12);
+                
+                oscGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                osc.connect(oscGain);
+                oscGain.connect(audioCtx.destination);
+
+                const metalOsc = audioCtx.createOscillator();
+                const metalGain = audioCtx.createGain();
+                metalOsc.type = 'sine';
+                metalOsc.frequency.setValueAtTime(3500 + Math.random() * 500, audioCtx.currentTime);
+                metalGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                metalGain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.3);
+
+                metalOsc.connect(metalGain);
+                metalGain.connect(audioCtx.destination);
+
+                noise.start();
+                osc.start();
+                metalOsc.start();
+
+                noise.stop(audioCtx.currentTime + 0.3);
+                osc.stop(audioCtx.currentTime + 0.2);
+                metalOsc.stop(audioCtx.currentTime + 0.35);
+            } catch (e) {
+                console.warn("Audio Playback Stopped:", e);
+            }
+        }
+
+        // 3. 젠 힐링 효과음
+        function playZenSound(yPercent) {
+            if (isMuted) return;
+            const now = Date.now();
+            if (now - lastSoundTime < 80) return; // 힐링 효과음 겹침 방지 데드타임
+            lastSoundTime = now;
+
+            initAudio();
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                const baseFreq = 150 + (1 - yPercent) * 600;
+                const pentatonic = [150, 171.4, 200, 228.5, 266.6, 300, 342.8, 400, 457.1, 533.3, 600, 685.7, 800];
+                let closestFreq = pentatonic[0];
+                let minDiff = Math.abs(baseFreq - pentatonic[0]);
+                for (let i = 1; i < pentatonic.length; i++) {
+                    const diff = Math.abs(baseFreq - pentatonic[i]);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestFreq = pentatonic[i];
+                    }
+                }
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(closestFreq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+
+                const delay = audioCtx.createDelay();
+                delay.delayTime.value = 0.2;
+                const feedback = audioCtx.createGain();
+                feedback.gain.value = 0.3;
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                gain.connect(delay);
+                delay.connect(feedback);
+                feedback.connect(delay);
+                delay.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.1);
+            } catch (e) {
+                console.warn("Audio Playback Stopped:", e);
+            }
+        }
+
+
+        // --- 모드 관리 및 캔버스 크기 조정 ---
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            if (currentMode === 'bubble') {
+                initBubbleGrid();
+            } else if (currentMode === 'smash') {
+                initSmashObjects();
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+
+        // --- 무한 뽁뽁이 모드 ---
+        let bubbles = [];
+        let pPopParticles = [];
+
+        class PopParticle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 3 + 1.5;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.04 + 0.03;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.12;
+                this.alpha -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Bubble {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.isPopped = false;
+                this.respawnTimer = 0;
+                this.scale = 1;         // 드로잉용 현재 스케일링 상태
+                this.pulseTime = Math.random() * 100;
+            }
+            update() {
+                if (this.isPopped) {
+                    this.respawnTimer -= 16.7;
+                    if (this.respawnTimer <= 0) {
+                        this.isPopped = false;
+                        this.scale = 0; // 재생성될 때 완전히 0부터 시작하게 만들어 매끄럽게 페이드인 유도
+                    }
+                } else {
+                    // 목표 스케일로 스무스하게 보간하여 크기가 부드럽게 살아나게 함
+                    if (this.scale < 1) {
+                        this.scale += (1 - this.scale) * 0.09; 
+                        if (this.scale > 0.99) this.scale = 1;
+                    }
+                    this.pulseTime += 0.04;
+                }
+            }
+            draw() {
+                if (this.isPopped) return; // 터지는 그 순간 딜레이 없이 100% 완전 가림! (지연 문제 완벽 해결)
+                
+                const currentRadius = this.radius * this.scale;
+                const pulse = Math.sin(this.pulseTime) * 1.0;
+                const finalRadius = currentRadius + pulse;
+                
+                if (finalRadius <= 0.5) return;
+
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, this.scale);
+
+                const grad = ctx.createRadialGradient(
+                    this.x - finalRadius * 0.3, 
+                    this.y - finalRadius * 0.3, 
+                    finalRadius * 0.1, 
+                    this.x, 
+                    this.y, 
+                    finalRadius
+                );
+                
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.3, this.color);
+                grad.addColorStop(1, adjustColorBrightness(this.color, -50));
+
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 6 * this.scale;
+                ctx.shadowOffsetY = 3 * this.scale;
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, finalRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x - finalRadius * 0.35, this.y - finalRadius * 0.35, finalRadius * 0.22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            pop() {
+                if (this.isPopped) return false;
+                this.isPopped = true;
+                this.scale = 0; // 즉시 스케일 소멸 처리
+                
+                // 생성 대기 속도 튜닝: 유저 피드백 수용 (너무 빠르지도, 너무 느리지도 않은 4.5초 ~ 6.5초 대기)
+                this.respawnTimer = 4500 + Math.random() * 2000; 
+                
+                const count = Math.min(12, 8 + Math.floor(Math.random() * 4));
+                for (let i = 0; i < count; i++) {
+                    pPopParticles.push(new PopParticle(this.x, this.y, this.color));
+                }
+                return true;
+            }
+        }
+
+        function adjustColorBrightness(hex, percent) {
+            let num = parseInt(hex.replace("#",""),16),
+            amt = Math.round(2.55 * percent),
+            R = (num >> 16) + amt,
+            G = (num >> 8 & 0x00FF) + amt,
+            B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        function initBubbleGrid() {
+            bubbles = [];
+            pPopParticles = [];
+            const radius = Math.min(canvas.width, canvas.height) > 600 ? 45 : 34;
+            const spacing = radius * 2 + 10;
+            const cols = Math.floor(canvas.width / spacing);
+            const rows = Math.floor(canvas.height / spacing);
+
+            const startX = (canvas.width - (cols - 1) * spacing) / 2;
+            const startY = (canvas.height - (rows - 1) * spacing) / 2;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = startX + c * spacing;
+                    const y = startY + r * spacing;
+                    const colorIndex = (r + c) % colors.bubbles.length;
+                    bubbles.push(new Bubble(x, y, radius, colors.bubbles[colorIndex]));
+                }
+            }
+        }
+
+        function updateBubbleMode() {
+            bubbles.forEach(b => b.update());
+            
+            pPopParticles = pPopParticles.filter(p => {
+                p.update();
+                return p.alpha > 0;
+            });
+        }
+
+        function drawBubbleMode() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            const step = 60;
+            for(let x=0; x<canvas.width; x+=step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for(let y=0; y<canvas.height; y+=step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            bubbles.forEach(b => b.draw());
+            pPopParticles.forEach(p => p.draw());
+        }
+
+        function handleBubbleInteraction(x, y) {
+            let poppedAny = false;
+            bubbles.forEach(b => {
+                if (b.isPopped) return;
+                
+                const dx = b.x - x;
+                const dy = b.y - y;
+                const distSq = dx * dx + dy * dy;
+                const radiusSq = b.radius * b.radius;
+
+                if (distSq < radiusSq) {
+                    if (b.pop()) {
+                        poppedAny = true;
+                        const frequencyScaler = 0.8 + (1 - (b.y / canvas.height)) * 0.7;
+                        playPopSound(frequencyScaler);
+                    }
+                }
+            });
+            return poppedAny;
+        }
+
+
+        // --- 스트레스 격파 모드 ---
+        let smashObjects = [];
+        let shards = [];
+        let hammerStrike = null;
+
+        class SmashObject {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.isSmashed = false;
+                this.radius = 80 + Math.random() * 30;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.color = colors.shards[Math.floor(Math.random() * colors.shards.length)];
+                this.floatOffset = Math.random() * 1000;
+                this.floatSpeed = 0.002 + Math.random() * 0.002;
+            }
+            update(time) {
+                if (this.isSmashed) return;
+                this.yOffset = Math.sin(time * this.floatSpeed + this.floatOffset) * 15;
+            }
+            draw() {
+                if (this.isSmashed) return;
+                const drawY = this.y + this.yOffset;
+
+                ctx.save();
+                ctx.translate(this.x, drawY);
+                ctx.rotate(this.rotation);
+
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetY = 8;
+
+                if (this.type === 'plate') {
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 10;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius - 20, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(-this.radius * 0.4, -this.radius * 0.4, this.radius * 0.3, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (this.type === 'glass') {
+                    ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+                    ctx.strokeStyle = '#0284c7';
+                    ctx.lineWidth = 4;
+                    
+                    const w = this.radius * 1.2;
+                    const h = this.radius * 1.8;
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(-w/2, -h/2, w, h, 12);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                    ctx.beginPath();
+                    ctx.moveTo(-w/2, -h/2);
+                    ctx.lineTo(w/2, h/6);
+                    ctx.lineTo(w/2, h/2);
+                    ctx.lineTo(-w/2, -h/6);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#64748b';
+                    ctx.beginPath();
+                    ctx.arc(0, h/2 - 12, 8, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (this.type === 'bottle') {
+                    ctx.fillStyle = '#0f766e';
+                    ctx.strokeStyle = '#14b8a6';
+                    ctx.lineWidth = 3;
+
+                    const r = this.radius * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-r, r * 2);
+                    ctx.lineTo(-r, -r);
+                    ctx.quadraticCurveTo(-r, -r*2, -r*0.4, -r*2.2);
+                    ctx.lineTo(-r*0.3, -r*3.5);
+                    ctx.lineTo(r*0.3, -r*3.5);
+                    ctx.lineTo(r*0.4, -r*2.2);
+                    ctx.quadraticCurveTo(r, -r*2, r, -r);
+                    ctx.lineTo(r, r*2);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fillRect(-r*0.8, -r*0.5, r*1.6, r*1.8);
+                    ctx.fillStyle = '#ca8a04';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText("STRESS", 0, r*0.3);
+                    ctx.fillText("KILLER", 0, r*1.0);
+                }
+                ctx.restore();
+            }
+            smash(strikeX, strikeY) {
+                this.isSmashed = true;
+                playSmashSound();
+
+                const shardCount = 25 + Math.floor(Math.random() * 15);
+                const drawY = this.y + this.yOffset;
+
+                for (let i = 0; i < shardCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.random() * this.radius * 0.8;
+                    const px = this.x + Math.cos(angle) * distance;
+                    const py = drawY + Math.sin(angle) * distance;
+                    
+                    const pushAngle = Math.atan2(px - strikeX, py - strikeY) + (Math.random() * 0.5 - 0.25);
+                    const pushSpeed = Math.random() * 12 + 4;
+
+                    shards.push(new Shard(
+                        px, 
+                        py, 
+                        Math.cos(pushAngle) * pushSpeed, 
+                        Math.sin(pushAngle) * pushSpeed, 
+                        this.color, 
+                        this.type
+                    ));
+                }
+            }
+        }
+
+        class Shard {
+            constructor(x, y, vx, vy, color, type) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.type = type;
+                this.size = Math.random() * 12 + 4;
+                this.angle = Math.random() * Math.PI * 2;
+                this.angularVelocity = (Math.random() * 0.4 - 0.2);
+                this.alpha = 1;
+                this.decay = 0.007 + Math.random() * 0.012;
+                this.gravity = 0.4;
+                this.friction = 0.98;
+            }
+            update() {
+                this.vy += this.gravity;
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.angularVelocity;
+                this.alpha -= this.decay;
+            }
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(-this.size/2, -this.size/2);
+                ctx.lineTo(this.size/2, -this.size/3);
+                ctx.lineTo(this.size/3, this.size/2);
+                ctx.lineTo(-this.size/3, this.size/2);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class HammerStrike {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.maxRadius = 80;
+                this.alpha = 1;
+            }
+            update() {
+                this.radius += (this.maxRadius - this.radius) * 0.2;
+                this.alpha -= 0.08;
+            }
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.strokeStyle = `rgba(251, 191, 36, ${this.alpha})`;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const sx = this.x + Math.cos(angle) * (this.radius * 1.1);
+                    const sy = this.y + Math.sin(angle) * (this.radius * 1.1);
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        function initSmashObjects() {
+            smashObjects = [];
+            shards = [];
+            hammerStrike = null;
+
+            const totalCount = Math.min(canvas.width, canvas.height) > 600 ? 5 : 3;
+            const stepX = canvas.width / (totalCount + 1);
+            const types = ['plate', 'glass', 'bottle'];
+
+            for (let i = 1; i <= totalCount; i++) {
+                const x = stepX * i;
+                const y = canvas.height / 2 + (Math.random() * 160 - 80);
+                const type = types[Math.floor(Math.random() * types.length)];
+                smashObjects.push(new SmashObject(x, y, type));
+            }
+        }
+
+        function updateSmashMode() {
+            const time = Date.now();
+            smashObjects.forEach(obj => obj.update(time));
+            
+            shards = shards.filter(s => {
+                s.update();
+                return s.alpha > 0 && s.y <= canvas.height + 100;
+            });
+
+            if (hammerStrike) {
+                hammerStrike.update();
+                if (hammerStrike.alpha <= 0) hammerStrike = null;
+            }
+
+            if (smashObjects.length > 0 && smashObjects.every(o => o.isSmashed) && shards.length === 0) {
+                initSmashObjects();
+            }
+        }
+
+        function drawSmashMode() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.height; i += 120) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            smashObjects.forEach(obj => obj.draw());
+            shards.forEach(s => s.draw());
+            if (hammerStrike) hammerStrike.draw();
+        }
+
+        function handleSmashInteraction(x, y) {
+            hammerStrike = new HammerStrike(x, y);
+            let hit = false;
+
+            smashObjects.forEach(obj => {
+                if (obj.isSmashed) return;
+                const drawY = obj.y + (obj.yOffset || 0);
+                
+                const dx = obj.x - x;
+                const dy = drawY - y;
+                const distSq = dx * dx + dy * dy;
+                const radiusSq = obj.radius * obj.radius;
+
+                if (distSq < radiusSq) {
+                    obj.smash(x, y);
+                    hit = true;
+                }
+            });
+
+            if (!hit) {
+                playPopSound(0.4); 
+            }
+        }
+
+
+        // --- 힐링 파티클 모드 ---
+        let zenParticles = [];
+
+        class ZenParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = Math.random() * 5 + 1;
+                this.color = colors.zen[Math.floor(Math.random() * colors.zen.length)];
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 1.5 + 0.5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                
+                this.alpha = 1;
+                this.decay = 0.01 + Math.random() * 0.012;
+            }
+            update() {
+                this.vx += (Math.random() * 0.16 - 0.08);
+                this.vy += (Math.random() * 0.16 - 0.08);
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function updateZenMode() {
+            zenParticles = zenParticles.filter(p => {
+                p.update();
+                return p.alpha > 0;
+            });
+
+            if (pointer.isDown) {
+                for (let i = 0; i < 3; i++) {
+                    const rx = pointer.x + (Math.random() * 16 - 8);
+                    const ry = pointer.y + (Math.random() * 16 - 8);
+                    zenParticles.push(new ZenParticle(rx, ry));
+                }
+            }
+        }
+
+        function drawZenMode() {
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            zenParticles.forEach(p => p.draw());
+
+            if (pointer.isDown) {
+                ctx.save();
+                const radGrad = ctx.createRadialGradient(pointer.x, pointer.y, 5, pointer.x, pointer.y, 80);
+                radGrad.addColorStop(0, 'rgba(129, 140, 248, 0.2)');
+                radGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+                ctx.fillStyle = radGrad;
+                ctx.beginPath();
+                ctx.arc(pointer.x, pointer.y, 80, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+
+        // --- 종합 루프 & 안전 예외 보호막 (Try-Catch) ---
+        function loop() {
+            try {
+                if (currentMode === 'bubble') {
+                    updateBubbleMode();
+                    drawBubbleMode();
+                } else if (currentMode === 'smash') {
+                    updateSmashMode();
+                    drawSmashMode();
+                } else if (currentMode === 'zen') {
+                    updateZenMode();
+                    drawZenMode();
+                }
+            } catch (error) {
+                console.error("Game Mode Error Caught & Auto-recovered:", error);
+                pPopParticles = [];
+                shards = [];
+                zenParticles = [];
+            }
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            const buttons = {
+                bubble: document.getElementById('btn-bubble'),
+                smash: document.getElementById('btn-smash'),
+                zen: document.getElementById('btn-zen')
+            };
+
+            const classesActive = ['bg-rose-500', 'text-white', 'shadow-md'];
+            const classesInactive = ['text-slate-400', 'hover:text-white'];
+            const hintText = document.getElementById('hint-text');
+
+            Object.keys(buttons).forEach(key => {
+                if (key === mode) {
+                    buttons[key].classList.add(...classesActive);
+                    buttons[key].classList.remove(...classesInactive);
+                } else {
+                    buttons[key].classList.remove(...classesActive);
+                    buttons[key].classList.add(...classesInactive);
+                }
+            });
+
+            if (mode === 'bubble') {
+                hintText.textContent = "뽁뽁이를 가볍게 탭해보세요. 알아서 가득 차오릅니다!";
+            } else if (mode === 'smash') {
+                hintText.textContent = "공중에 떠 있는 기물을 터치해서 사정없이 깨트리세요!";
+            } else if (mode === 'zen') {
+                hintText.textContent = "화면을 터치하거나 비벼서 편안한 오로라 소리를 감상하세요.";
+            }
+
+            resizeCanvas();
+        }
+
+        // 웹 표준 통합 포인터 좌표 헬퍼 함수
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        // --- 완벽한 포인터 이벤트 제어 ---
+        function onPointerDown(e) {
+            if (e.target !== canvas) return;
+            e.preventDefault();
+            
+            const pos = getPointerPos(e);
+            pointer.x = pos.x;
+            pointer.y = pos.y;
+            pointer.isDown = true;
+
+            try {
+                canvas.setPointerCapture(e.pointerId);
+            } catch (err) {}
+
+            if (currentMode === 'bubble') {
+                handleBubbleInteraction(pos.x, pos.y);
+            } else if (currentMode === 'smash') {
+                handleSmashInteraction(pos.x, pos.y);
+            } else if (currentMode === 'zen') {
+                const yPercent = pos.y / canvas.height;
+                playZenSound(yPercent);
+                for (let i = 0; i < 15; i++) {
+                    zenParticles.push(new ZenParticle(pos.x, pos.y));
+                }
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!pointer.isDown) return;
+            e.preventDefault();
+            
+            const pos = getPointerPos(e);
+            pointer.x = pos.x;
+            pointer.y = pos.y;
+
+            if (currentMode === 'bubble') {
+                handleBubbleInteraction(pos.x, pos.y);
+            } else if (currentMode === 'zen') {
+                if (Math.random() < 0.12) {
+                    const yPercent = pos.y / canvas.height;
+                    playZenSound(yPercent);
+                }
+            }
+        }
+
+        // 포인터 활성화 해제 로직 통합
+        function onPointerUp(e) {
+            if (!pointer.isDown) return;
+            pointer.isDown = false;
+            try {
+                canvas.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+        }
+
+        function onPointerCancel(e) {
+            pointer.isDown = false;
+            try {
+                canvas.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+        }
+
+        // 포인터 이벤트 정밀 바인딩
+        canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+        canvas.addEventListener('pointermove', onPointerMove, { passive: false });
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerCancel);
+
+        // --- 도움말 모달 제어 ---
+        function showHelpModal() {
+            document.getElementById('help-modal').classList.remove('hidden');
+        }
+
+        function hideHelpModal() {
+            document.getElementById('help-modal').classList.add('hidden');
+            initAudio();
+        }
+
+        // 초기 시작
+        window.onload = function() {
+            resizeCanvas();
+            loop();
+            showHelpModal();
+        };
+    </script>
+</body>
+</html>

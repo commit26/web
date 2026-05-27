@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Music Pick</title>
+  <style>
+    /* 모든 요소의 여백과 크기 계산 방식을 정리합니다. */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 페이지 전체의 기본 배경, 글꼴, 글자색을 설정합니다. */
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #14151f, #2f2444);
+      color: #fffaf2;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif;
+      transition: background 0.8s ease;
+    }
+
+    /* 버튼은 기본 글꼴을 물려받고 클릭 가능한 느낌을 줍니다. */
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    /* 전체 앱 화면을 가운데 정렬하고 모바일 여백도 확보합니다. */
+    .app {
+      width: min(920px, calc(100% - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 44px 0;
+    }
+
+    /* 상단 타이틀 영역입니다. */
+    .header {
+      text-align: center;
+      margin-bottom: 34px;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: rgba(255, 250, 242, 0.62);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(38px, 8vw, 86px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 520px;
+      margin: 18px auto 0;
+      color: rgba(255, 250, 242, 0.72);
+      font-size: 16px;
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    /* 추천 카드와 좋아요 목록을 담는 반투명 패널입니다. */
+    .panel {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(18px);
+      padding: clamp(22px, 4vw, 36px);
+    }
+
+    /* 가장 중요한 랜덤 추천 버튼을 가운데 크고 선명하게 배치합니다. */
+    .pick-button {
+      display: block;
+      width: min(320px, 100%);
+      min-height: 86px;
+      margin: 0 auto 30px;
+      border: 0;
+      border-radius: 999px;
+      background: #fffaf2;
+      color: #171722;
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 900;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .pick-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
+    }
+
+    .pick-button:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    /* 랜덤 추천 결과 카드입니다. */
+    .music-card {
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.22), transparent 36%),
+        rgba(10, 10, 16, 0.38);
+      padding: 32px 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .empty-message {
+      color: rgba(255, 250, 242, 0.64);
+      font-size: 17px;
+    }
+
+    .song-title {
+      font-size: clamp(34px, 7vw, 64px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      margin-bottom: 12px;
+    }
+
+    .artist {
+      color: rgba(255, 250, 242, 0.76);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .genre {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      padding: 8px 13px;
+      color: #fffaf2;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .reason {
+      max-width: 560px;
+      margin: 20px auto 0;
+      color: rgba(255, 250, 242, 0.72);
+      font-size: 16px;
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    /* 좋아요 버튼은 추천 결과가 나온 뒤 자연스럽게 누를 수 있게 배치합니다. */
+    .like-button {
+      display: none;
+      width: min(220px, 100%);
+      margin: 22px auto 0;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      padding: 13px 16px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fffaf2;
+      font-weight: 900;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .like-button.show {
+      display: block;
+    }
+
+    .like-button.liked {
+      background: #fffaf2;
+      color: #171722;
+    }
+
+    /* 노래 추가와 전체 목록 보기 버튼을 나란히 배치합니다. */
+    .main-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .secondary-button {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      padding: 11px 15px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fffaf2;
+      font-weight: 800;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .secondary-button:hover {
+      background: #fffaf2;
+      color: #171722;
+    }
+
+    /* 노래 추가 입력 폼은 버튼을 눌렀을 때만 보이도록 기본값을 숨김으로 둡니다. */
+    .add-form {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 16px;
+    }
+
+    .add-form.show {
+      display: grid;
+    }
+
+    .add-form input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      color: #fffaf2;
+      font: inherit;
+      padding: 12px 13px;
+      outline: none;
+    }
+
+    .add-form input::placeholder {
+      color: rgba(255, 250, 242, 0.48);
+    }
+
+    .add-form input:focus {
+      border-color: rgba(255, 250, 242, 0.72);
+    }
+
+    .form-wide {
+      grid-column: 1 / -1;
+    }
+
+    .save-song-button {
+      border: 0;
+      border-radius: 14px;
+      background: #fffaf2;
+      color: #171722;
+      font-weight: 900;
+      padding: 12px 14px;
+    }
+
+    .form-note {
+      grid-column: 1 / -1;
+      color: rgba(255, 250, 242, 0.58);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* 좋아요 목록 영역입니다. */
+    .library-section,
+    .liked-section {
+      margin-top: 24px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      font-size: 18px;
+    }
+
+    .count {
+      color: rgba(255, 250, 242, 0.58);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .liked-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .song-library {
+      display: none;
+      max-height: 360px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .song-library.show {
+      display: block;
+    }
+
+    .song-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .song-row:last-child {
+      border-bottom: 0;
+    }
+
+    .song-row strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .song-row span {
+      display: block;
+      margin-top: 3px;
+      color: rgba(255, 250, 242, 0.58);
+      font-size: 13px;
+    }
+
+    .custom-badge {
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: rgba(255, 250, 242, 0.14);
+      color: rgba(255, 250, 242, 0.72);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .library-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .liked-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 14px;
+    }
+
+    .liked-item strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .liked-item span {
+      display: block;
+      margin-top: 4px;
+      color: rgba(255, 250, 242, 0.6);
+      font-size: 13px;
+    }
+
+    .remove-button {
+      border: 0;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fffaf2;
+      font-size: 18px;
+    }
+
+    .empty-list {
+      color: rgba(255, 250, 242, 0.56);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* 작은 화면에서는 패널과 버튼 크기를 조금 줄여 답답하지 않게 만듭니다. */
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 22px, 920px);
+        justify-content: flex-start;
+        padding-top: 34px;
+      }
+
+      .panel {
+        border-radius: 22px;
+      }
+
+      .pick-button {
+        min-height: 76px;
+        margin-bottom: 22px;
+      }
+
+      .music-card {
+        min-height: 238px;
+        padding: 26px 16px;
+      }
+
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .add-form {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <p class="eyebrow">simple emotional music app</p>
+      <h1>Random Music Pick</h1>
+      <p class="subtitle">버튼 하나로 오늘의 분위기에 어울리는 음악을 랜덤으로 골라보세요.</p>
+    </header>
+
+    <section class="panel" aria-label="랜덤 음악 추천 앱">
+      <button class="pick-button" id="pickButton" type="button">추천 받기</button>
+
+      <article class="music-card" id="musicCard">
+        <p class="empty-message">가운데 버튼을 누르면 음악 추천이 나타나요.</p>
+      </article>
+
+      <button class="like-button" id="likeButton" type="button">좋아요</button>
+
+      <div class="main-actions">
+        <button class="secondary-button" id="toggleAddButton" type="button">노래 추가</button>
+        <button class="secondary-button" id="toggleLibraryButton" type="button">전체 노래 보기</button>
+      </div>
+
+      <form class="add-form" id="addSongForm">
+        <input id="songTitleInput" type="text" placeholder="곡 제목" required>
+        <input id="songArtistInput" type="text" placeholder="아티스트" required>
+        <input id="songGenreInput" type="text" placeholder="장르 (선택)">
+        <input id="songReasonInput" type="text" placeholder="한줄 추천 이유 (선택)">
+        <p class="form-note">곡 제목과 아티스트만 입력해도 추가됩니다. 장르와 추천 이유를 비우면 기본 문구가 들어가요.</p>
+        <button class="save-song-button form-wide" type="submit">목록에 추가하기</button>
+      </form>
+
+      <section class="library-section" aria-label="전체 노래 목록">
+        <div class="section-title">
+          <h2>전체 노래 목록</h2>
+          <span class="count" id="songCount">0곡</span>
+        </div>
+        <div class="song-library" id="songLibrary"></div>
+      </section>
+
+      <section class="liked-section" aria-label="좋아요 누른 음악 목록">
+        <div class="section-title">
+          <h2>좋아요 누른 음악</h2>
+          <span class="count" id="likedCount">0곡</span>
+        </div>
+        <div class="liked-list" id="likedList"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    // 아티스트별 기본 분위기입니다.
+    // 곡마다 장르, 추천 이유, 배경색을 반복해서 쓰지 않기 위해 한곳에 모아둡니다.
+    const artistStyles = {
+      "Queen": {
+        genre: "Classic Rock",
+        reason: "드라마틱한 구성과 강한 멜로디가 기분을 크게 흔들어주는 곡이에요.",
+        background: "linear-gradient(135deg, #21122f, #b83280)"
+      },
+      "The Beatles": {
+        genre: "Classic Pop / Rock",
+        reason: "따뜻한 멜로디가 하루를 부드럽게 밝혀주는 곡이에요.",
+        background: "linear-gradient(135deg, #263238, #f2c572)"
+      },
+      "Muse": {
+        genre: "Alternative Rock",
+        reason: "웅장한 기타와 긴장감 있는 리듬이 에너지를 확 끌어올려줘요.",
+        background: "linear-gradient(135deg, #111827, #4f46e5)"
+      },
+      "American Football": {
+        genre: "Midwest Emo",
+        reason: "섬세한 기타와 담담한 분위기가 조용한 감정에 잘 어울려요.",
+        background: "linear-gradient(135deg, #1f2933, #6b7280)"
+      },
+      "Green Day": {
+        genre: "Punk Rock",
+        reason: "선명한 기타와 직선적인 감정이 마음을 시원하게 열어줘요.",
+        background: "linear-gradient(135deg, #102a22, #68a357)"
+      },
+      "Radiohead": {
+        genre: "Alternative Rock",
+        reason: "불안함과 아름다움이 함께 흐르는 깊은 분위기의 곡이에요.",
+        background: "linear-gradient(135deg, #0f172a, #64748b)"
+      },
+      "Guns N' Roses": {
+        genre: "Hard Rock",
+        reason: "거친 기타와 폭발적인 보컬이 록의 쾌감을 제대로 줍니다.",
+        background: "linear-gradient(135deg, #1c0f0f, #c2410c)"
+      },
+      "Liam Gallagher": {
+        genre: "Britpop / Rock",
+        reason: "담백하면서도 거친 보컬이 쿨한 록 감성을 만들어줘요.",
+        background: "linear-gradient(135deg, #1e293b, #a8a29e)"
+      },
+      "AC/DC": {
+        genre: "Hard Rock",
+        reason: "단단한 리프와 거침없는 에너지가 바로 몸을 깨워줘요.",
+        background: "linear-gradient(135deg, #111111, #ef4444)"
+      },
+      "Oasis": {
+        genre: "Britpop",
+        reason: "크게 따라 부르고 싶은 멜로디가 벅찬 기분을 남겨요.",
+        background: "linear-gradient(135deg, #1d3557, #f4a261)"
+      },
+      "Nirvana": {
+        genre: "Grunge",
+        reason: "날것의 기타와 솔직한 감정이 묵직하게 꽂히는 곡이에요.",
+        background: "linear-gradient(135deg, #111827, #0ea5e9)"
+      },
+      "Ozzy Osbourne": {
+        genre: "Heavy Metal",
+        reason: "강렬한 기타와 압도적인 분위기가 짜릿한 긴장감을 줘요.",
+        background: "linear-gradient(135deg, #1f1515, #7f1d1d)"
+      },
+      "X JAPAN": {
+        genre: "Visual Rock / Rock Ballad",
+        reason: "극적인 멜로디와 뜨거운 감정선이 오래 남는 곡이에요.",
+        background: "linear-gradient(135deg, #172554, #dc2626)"
+      },
+      "Blur": {
+        genre: "Britpop / Indie Rock",
+        reason: "재치 있는 리듬과 선명한 기타가 산뜻한 영국 록 무드를 줘요.",
+        background: "linear-gradient(135deg, #312e81, #f59e0b)"
+      },
+      "Red Hot Chili Peppers": {
+        genre: "Funk Rock",
+        reason: "탄력 있는 그루브와 시원한 멜로디가 기분 전환에 좋아요.",
+        background: "linear-gradient(135deg, #3f1d1d, #e11d48)"
+      },
+      "Suede": {
+        genre: "Britpop / Glam Rock",
+        reason: "화려하면서도 쓸쓸한 무드가 밤의 감성에 잘 맞아요.",
+        background: "linear-gradient(135deg, #2d1b3d, #c026d3)"
+      },
+      "Bon Jovi": {
+        genre: "Arena Rock",
+        reason: "큰 후렴과 시원한 사운드가 바로 힘을 실어주는 곡이에요.",
+        background: "linear-gradient(135deg, #1f2937, #b91c1c)"
+      },
+      "Elvis Presley": {
+        genre: "Rock and Roll",
+        reason: "클래식한 로큰롤 에너지가 가볍고 신나게 흐릅니다.",
+        background: "linear-gradient(135deg, #291313, #f97316)"
+      },
+      "Slowdive": {
+        genre: "Shoegaze",
+        reason: "흐릿하게 번지는 기타와 보컬이 꿈속을 걷는 듯한 느낌을 줘요.",
+        background: "linear-gradient(135deg, #111827, #8b5cf6)"
+      },
+      "The Rolling Stones": {
+        genre: "Classic Rock",
+        reason: "느슨하지만 강한 록 그루브가 오래된 멋을 그대로 보여줘요.",
+        background: "linear-gradient(135deg, #151515, #7f1d1d)"
+      },
+      "Eagles": {
+        genre: "Classic Rock",
+        reason: "서정적인 기타와 여유로운 분위기가 긴 여운을 남겨요.",
+        background: "linear-gradient(135deg, #14313d, #d97706)"
+      },
+      "Fugazi": {
+        genre: "Post-Hardcore",
+        reason: "거칠고 단단한 리듬이 집중력을 날카롭게 만들어줘요.",
+        background: "linear-gradient(135deg, #18181b, #be123c)"
+      },
+      "실리카겔": {
+        genre: "K-Indie / Psychedelic Rock",
+        reason: "낯선 질감의 사운드가 신선하고 몽환적인 긴장감을 줘요.",
+        background: "linear-gradient(135deg, #102a43, #38bdf8)"
+      },
+      "LINKIN PARK": {
+        genre: "Alternative Metal",
+        reason: "강한 비트와 폭발적인 감정이 답답함을 밀어내줘요.",
+        background: "linear-gradient(135deg, #111827, #92400e)"
+      },
+      "SCANDAL": {
+        genre: "J-Rock",
+        reason: "빠르고 선명한 밴드 사운드가 청량한 에너지를 줘요.",
+        background: "linear-gradient(135deg, #1f2937, #e11d48)"
+      },
+      "My Chemical Romance": {
+        genre: "Emo / Alternative Rock",
+        reason: "극적인 전개와 강한 후렴이 감정을 영화처럼 키워줘요.",
+        background: "linear-gradient(135deg, #111111, #6b7280)"
+      },
+      "Pink Floyd": {
+        genre: "Progressive Rock",
+        reason: "넓게 펼쳐지는 사운드가 생각을 천천히 깊게 만들어줘요.",
+        background: "linear-gradient(135deg, #020617, #4338ca)"
+      }
+    };
+
+    // 랜덤으로 추천할 음악 목록입니다.
+    // 새 곡을 추가하려면 { title: "곡 제목", artist: "아티스트" } 형식으로 한 줄을 더 넣으면 됩니다.
+    const baseSongs = [
+      { title: "Bohemian Rhapsody", artist: "Queen" },
+      { title: "Here Comes the Sun", artist: "The Beatles" },
+      { title: "Time is Running Out", artist: "Muse" },
+      { title: "Hysteria", artist: "Muse" },
+      { title: "You Know I Should Be Leaving Soon", artist: "American Football" },
+      { title: "Honestly? (Remastered 2024)", artist: "American Football" },
+      { title: "For Sure (Remastered 2024)", artist: "American Football" },
+      { title: "Never Meant", artist: "American Football" },
+      { title: "The Summer Ends", artist: "American Football" },
+      { title: "Wake Me Up When September Ends", artist: "Green Day" },
+      { title: "Pyramid Song", artist: "Radiohead" },
+      { title: "Welcome To The Jungle", artist: "Guns N' Roses" },
+      { title: "Sweet Child O' Mine", artist: "Guns N' Roses" },
+      { title: "For What It's Worth", artist: "Liam Gallagher" },
+      { title: "Back In Black", artist: "AC/DC" },
+      { title: "Stand By Me", artist: "Oasis" },
+      { title: "Starlight", artist: "Muse" },
+      { title: "Blew", artist: "Nirvana" },
+      { title: "About a Girl", artist: "Nirvana" },
+      { title: "School", artist: "Nirvana" },
+      { title: "Love Buzz", artist: "Nirvana" },
+      { title: "Crazy Train", artist: "Ozzy Osbourne" },
+      { title: "Endless Rain", artist: "X JAPAN" },
+      { title: "ENDLESS RAIN (2007 Remaster)", artist: "X JAPAN" },
+      { title: "紅 - KURENAI (Intro strings 2007 Remaster)", artist: "X JAPAN" },
+      { title: "Beetlebum (2012 Remaster)", artist: "Blur" },
+      { title: "Song 2 (2012 Remaster)", artist: "Blur" },
+      { title: "Can't Stop", artist: "Red Hot Chili Peppers" },
+      { title: "Trash", artist: "Suede" },
+      { title: "Beautiful Ones", artist: "Suede" },
+      { title: "Starcrazy", artist: "Suede" },
+      { title: "Always", artist: "Bon Jovi" },
+      { title: "It's My Life", artist: "Bon Jovi" },
+      { title: "Tears", artist: "X JAPAN" },
+      { title: "Rock 'n' Roll Star (Remastered)", artist: "Oasis" },
+      { title: "Supersonic (Remastered)", artist: "Oasis" },
+      { title: "Slide Away (Remastered)", artist: "Oasis" },
+      { title: "Jailhouse Rock", artist: "Elvis Presley" },
+      { title: "kisses", artist: "Slowdive" },
+      { title: "Forever Love", artist: "X JAPAN" },
+      { title: "She's In Fashion", artist: "Suede" },
+      { title: "Stop Crying Your Heart Out", artist: "Oasis" },
+      { title: "Little By Little", artist: "Oasis" },
+      { title: "Paint It Black", artist: "The Rolling Stones" },
+      { title: "Hotel California", artist: "Eagles" },
+      { title: "Bohemian Rhapsody (Live In Budapest / 1986)", artist: "Queen" },
+      { title: "Heart-Shaped Box", artist: "Nirvana" },
+      { title: "Dumb", artist: "Nirvana" },
+      { title: "I'm So Tired", artist: "Fugazi" },
+      { title: "Bed of Roses", artist: "Bon Jovi" },
+      { title: "Everything In Its Right Place", artist: "Radiohead" },
+      { title: "Let It Be", artist: "The Beatles" },
+      { title: "You Can't Always Get What You Want (Remastered 2019)", artist: "The Rolling Stones" },
+      { title: "Mercurial", artist: "실리카겔" },
+      { title: "Faint", artist: "LINKIN PARK" },
+      { title: "Song 2", artist: "Blur" },
+      { title: "For Tomorrow", artist: "Blur" },
+      { title: "The Man Who Sold the World (Live Acoustic)", artist: "Nirvana" },
+      { title: "Smells Like Teen Spirit", artist: "Nirvana" },
+      { title: "In Bloom", artist: "Nirvana" },
+      { title: "Come As You Are", artist: "Nirvana" },
+      { title: "Breed", artist: "Nirvana" },
+      { title: "Lithium", artist: "Nirvana" },
+      { title: "Drain You", artist: "Nirvana" },
+      { title: "Endless, Nameless", artist: "Nirvana" },
+      { title: "Bad Medicine", artist: "Bon Jovi" },
+      { title: "No Surprises", artist: "Radiohead" },
+      { title: "Karma Police (Remastered)", artist: "Radiohead" },
+      { title: "Fitter Happier (Remastered)", artist: "Radiohead" },
+      { title: "Plug In Baby", artist: "Muse" },
+      { title: "Creep", artist: "Radiohead" },
+      { title: "Girls and Boys", artist: "Blur" },
+      { title: "End of a Century", artist: "Blur" },
+      { title: "Parklife", artist: "Blur" },
+      { title: "London Loves", artist: "Blur" },
+      { title: "Repeater", artist: "Fugazi" },
+      { title: "Brendan #1", artist: "Fugazi" },
+      { title: "Merchandise", artist: "Fugazi" },
+      { title: "Blueprint", artist: "Fugazi" },
+      { title: "瞬間センチメンタル", artist: "SCANDAL" },
+      { title: "You Give Love a Bad Name", artist: "Bon Jovi" },
+      { title: "Livin' On a Prayer", artist: "Bon Jovi" },
+      { title: "Sugar for the Pill", artist: "Slowdive" },
+      { title: "Alison", artist: "Slowdive" },
+      { title: "Machine Gun", artist: "Slowdive" },
+      { title: "40 Days", artist: "Slowdive" },
+      { title: "Sing", artist: "Slowdive" },
+      { title: "Here She Comes", artist: "Slowdive" },
+      { title: "When the Sun Hits", artist: "Slowdive" },
+      { title: "High and Dry", artist: "Radiohead" },
+      { title: "Fake Plastic Trees", artist: "Radiohead" },
+      { title: "(Nice Dream)", artist: "Radiohead" },
+      { title: "Just", artist: "Radiohead" },
+      { title: "My Iron Lung", artist: "Radiohead" },
+      { title: "Black Star", artist: "Radiohead" },
+      { title: "Welcome to the Black Parade", artist: "My Chemical Romance" },
+      { title: "Breathe (In the Air)", artist: "Pink Floyd" },
+      { title: "Time", artist: "Pink Floyd" },
+      { title: "The Great Gig In the Sky", artist: "Pink Floyd" },
+      { title: "Eclipse", artist: "Pink Floyd" },
+      { title: "Ghost Ship", artist: "Blur" },
+      { title: "Don't Stop Me Now", artist: "Queen" },
+      { title: "Thunderstruck", artist: "AC/DC" },
+      { title: "Sweet Song", artist: "Blur" },
+      { title: "November Rain", artist: "Guns N' Roses" },
+      { title: "Knockin' On Heaven's Door", artist: "Guns N' Roses" },
+      { title: "Wonderwall (Remastered)", artist: "Oasis" },
+      { title: "Don't Look Back in Anger (Remastered)", artist: "Oasis" },
+      { title: "Champagne Supernova (Remastered)", artist: "Oasis" },
+      { title: "Waiting Room", artist: "Fugazi" }
+    ];
+
+    // 직접 추가한 노래를 저장할 때 사용할 이름입니다.
+    const customSongsStorageKey = "randomMusicPickCustomSongs";
+
+    // HTML로 글자를 넣을 때 특수문자가 화면을 깨지 않도록 바꿔주는 함수입니다.
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // 브라우저 저장소를 안전하게 가져옵니다.
+    // file://로 열었을 때 일부 브라우저는 localStorage를 막을 수 있어서 try/catch로 감쌉니다.
+    function getSafeStorage() {
+      try {
+        return window.localStorage;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    // localStorage에 저장된 직접 추가 노래를 안전하게 불러옵니다.
+    // 저장소가 막혀 있어도 기본 노래 목록은 정상적으로 보이게 빈 배열을 돌려줍니다.
+    function loadCustomSongs() {
+      try {
+        const storage = getSafeStorage();
+        if (!storage) return [];
+
+        const savedSongs = JSON.parse(storage.getItem(customSongsStorageKey));
+        return Array.isArray(savedSongs) ? savedSongs : [];
+      } catch (error) {
+        const storage = getSafeStorage();
+        if (storage) {
+          storage.removeItem(customSongsStorageKey);
+        }
+        return [];
+      }
+    }
+
+    // 직접 추가한 노래 목록을 브라우저에 저장합니다.
+    function saveCustomSongs() {
+      const storage = getSafeStorage();
+      if (!storage) return;
+
+      try {
+        storage.setItem(customSongsStorageKey, JSON.stringify(customSongs));
+      } catch (error) {
+        // 저장이 막힌 환경에서는 화면에만 추가하고 새로고침 후에는 사라질 수 있습니다.
+      }
+    }
+
+    // 곡 하나에 장르, 추천 이유, 배경색, 고유 id를 붙여 완성된 데이터로 만듭니다.
+    function createSongData(song, index, type) {
+      const style = artistStyles[song.artist] || {
+        genre: "Rock",
+        reason: "오늘의 분위기에 맞춰 가볍게 들어보기 좋은 곡이에요.",
+        background: "linear-gradient(135deg, #14151f, #2f2444)"
+      };
+
+      return {
+        id: song.id || `${type}-${index + 1}`,
+        title: song.title,
+        artist: song.artist,
+        genre: song.genre || style.genre,
+        reason: song.reason || style.reason,
+        background: song.background || style.background,
+        custom: type === "custom"
+      };
+    }
+
+    // 기본 노래와 직접 추가한 노래를 합쳐 실제 랜덤 추천 목록을 만듭니다.
+    function buildSongList() {
+      const preparedBaseSongs = baseSongs.map(function(song, index) {
+        return createSongData(song, index, "song");
+      });
+
+      const preparedCustomSongs = customSongs.map(function(song, index) {
+        return createSongData(song, index, "custom");
+      });
+
+      return preparedBaseSongs.concat(preparedCustomSongs);
+    }
+
+    // 사용자가 직접 추가한 노래와 전체 노래 목록입니다.
+    let customSongs = loadCustomSongs();
+    let songs = buildSongList();
+
+    // 자주 사용할 HTML 요소를 변수에 담습니다.
+    const pickButton = document.querySelector("#pickButton");
+    const musicCard = document.querySelector("#musicCard");
+    const likeButton = document.querySelector("#likeButton");
+    const likedList = document.querySelector("#likedList");
+    const likedCount = document.querySelector("#likedCount");
+    const toggleAddButton = document.querySelector("#toggleAddButton");
+    const toggleLibraryButton = document.querySelector("#toggleLibraryButton");
+    const addSongForm = document.querySelector("#addSongForm");
+    const songTitleInput = document.querySelector("#songTitleInput");
+    const songArtistInput = document.querySelector("#songArtistInput");
+    const songGenreInput = document.querySelector("#songGenreInput");
+    const songReasonInput = document.querySelector("#songReasonInput");
+    const songLibrary = document.querySelector("#songLibrary");
+    const songCount = document.querySelector("#songCount");
+
+    // 현재 화면에 추천된 곡을 저장합니다.
+    let currentSong = null;
+
+    // 좋아요 목록을 저장하는 배열입니다.
+    let likedSongs = [];
+
+    // 곡 id로 songs 배열에서 곡 정보를 찾는 함수입니다.
+    function findSong(songId) {
+      return songs.find(function(song) {
+        return song.id === songId;
+      });
+    }
+
+    // 현재 곡이 좋아요 목록에 있는지 확인합니다.
+    function isLiked(songId) {
+      return likedSongs.includes(songId);
+    }
+
+    // 추천 결과 카드를 화면에 표시합니다.
+    function showSong(song) {
+      currentSong = song;
+
+      musicCard.innerHTML = `
+        <div>
+          <h2 class="song-title">${escapeHtml(song.title)}</h2>
+          <p class="artist">${escapeHtml(song.artist)}</p>
+          <p class="genre">${escapeHtml(song.genre)}</p>
+          <p class="reason">${escapeHtml(song.reason)}</p>
+        </div>
+      `;
+
+      // 추천마다 배경색을 자연스럽게 바꿉니다.
+      document.body.style.background = song.background;
+
+      // 추천이 나온 뒤에만 좋아요 버튼을 보여줍니다.
+      likeButton.classList.add("show");
+      updateLikeButton();
+    }
+
+    // 랜덤으로 곡 하나를 뽑습니다.
+    function pickRandomSong() {
+      const randomIndex = Math.floor(Math.random() * songs.length);
+      showSong(songs[randomIndex]);
+    }
+
+    // 좋아요 버튼의 글자와 색을 현재 상태에 맞게 바꿉니다.
+    function updateLikeButton() {
+      if (!currentSong) return;
+
+      if (isLiked(currentSong.id)) {
+        likeButton.textContent = "좋아요 취소";
+        likeButton.classList.add("liked");
+      } else {
+        likeButton.textContent = "좋아요";
+        likeButton.classList.remove("liked");
+      }
+    }
+
+    // 좋아요 목록을 화면 아래에 보여줍니다.
+    function renderLikedSongs() {
+      likedCount.textContent = `${likedSongs.length}곡`;
+
+      if (likedSongs.length === 0) {
+        likedList.innerHTML = `<p class="empty-list">아직 좋아요를 누른 음악이 없어요.</p>`;
+        return;
+      }
+
+      likedList.innerHTML = likedSongs.map(function(songId) {
+        const song = findSong(songId);
+        if (!song) return "";
+
+        return `
+          <div class="liked-item">
+            <div>
+              <strong>${escapeHtml(song.title)}</strong>
+              <span>${escapeHtml(song.artist)} · ${escapeHtml(song.genre)}</span>
+            </div>
+            <button class="remove-button" type="button" aria-label="${escapeHtml(song.title)} 삭제" data-remove="${song.id}">×</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 전체 노래 목록을 화면에 보여줍니다.
+    function renderSongLibrary() {
+      songCount.textContent = `${songs.length}곡`;
+
+      songLibrary.innerHTML = songs.map(function(song) {
+        const customActions = song.custom
+          ? `
+            <div class="library-actions">
+              <span class="custom-badge">추가됨</span>
+              <button class="remove-button" type="button" aria-label="${escapeHtml(song.title)} 삭제" data-delete-custom="${song.id}">×</button>
+            </div>
+          `
+          : "";
+
+        return `
+          <div class="song-row">
+            <div>
+              <strong>${escapeHtml(song.title)}</strong>
+              <span>${escapeHtml(song.artist)} · ${escapeHtml(song.genre)}</span>
+            </div>
+            ${customActions}
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 노래 추가 폼에서 입력한 값을 전체 목록에 추가합니다.
+    function addCustomSong(event) {
+      event.preventDefault();
+
+      const title = songTitleInput.value.trim();
+      const artist = songArtistInput.value.trim();
+      const genre = songGenreInput.value.trim();
+      const reason = songReasonInput.value.trim();
+
+      if (!title || !artist) return;
+
+      customSongs.push({
+        id: `custom-${Date.now()}`,
+        title: title,
+        artist: artist,
+        genre: genre,
+        reason: reason,
+        background: "linear-gradient(135deg, #14151f, #2f2444)"
+      });
+
+      saveCustomSongs();
+      songs = buildSongList();
+      addSongForm.reset();
+      renderSongLibrary();
+    }
+
+    // 전체 목록에서 직접 추가한 노래를 삭제합니다.
+    function deleteCustomSong(songId) {
+      customSongs = customSongs.filter(function(song) {
+        return song.id !== songId;
+      });
+
+      likedSongs = likedSongs.filter(function(likedSongId) {
+        return likedSongId !== songId;
+      });
+
+      saveCustomSongs();
+      songs = buildSongList();
+      renderSongLibrary();
+      renderLikedSongs();
+      updateLikeButton();
+    }
+
+    // 현재 추천된 곡을 좋아요 목록에 추가하거나 제거합니다.
+    function toggleLike() {
+      if (!currentSong) return;
+
+      if (isLiked(currentSong.id)) {
+        likedSongs = likedSongs.filter(function(songId) {
+          return songId !== currentSong.id;
+        });
+      } else {
+        likedSongs.push(currentSong.id);
+      }
+
+      updateLikeButton();
+      renderLikedSongs();
+    }
+
+    // 추천 버튼을 클릭하면 랜덤 곡을 보여줍니다.
+    pickButton.addEventListener("click", pickRandomSong);
+
+    // 좋아요 버튼을 클릭하면 좋아요 목록을 업데이트합니다.
+    likeButton.addEventListener("click", toggleLike);
+
+    // 노래 추가 버튼을 누르면 입력 폼을 보여주거나 숨깁니다.
+    toggleAddButton.addEventListener("click", function() {
+      addSongForm.classList.toggle("show");
+      if (addSongForm.classList.contains("show")) {
+        songTitleInput.focus();
+      }
+    });
+
+    // 전체 노래 보기 버튼을 누르면 목록을 보여주거나 숨깁니다.
+    toggleLibraryButton.addEventListener("click", function() {
+      songLibrary.classList.toggle("show");
+    });
+
+    // 노래 추가 폼을 제출하면 직접 추가한 노래로 저장합니다.
+    addSongForm.addEventListener("submit", addCustomSong);
+
+    // 전체 목록에서 직접 추가한 곡의 삭제 버튼을 처리합니다.
+    songLibrary.addEventListener("click", function(event) {
+      const deleteButton = event.target.closest("[data-delete-custom]");
+      if (!deleteButton) return;
+
+      deleteCustomSong(deleteButton.dataset.deleteCustom);
+    });
+
+    // 목록에서 x 버튼을 누르면 해당 곡을 삭제합니다.
+    likedList.addEventListener("click", function(event) {
+      const removeButton = event.target.closest("[data-remove]");
+      if (!removeButton) return;
+
+      likedSongs = likedSongs.filter(function(songId) {
+        return songId !== removeButton.dataset.remove;
+      });
+
+      updateLikeButton();
+      renderLikedSongs();
+    });
+
+    // 처음 페이지가 열릴 때 빈 좋아요 목록을 그립니다.
+    renderSongLibrary();
+    renderLikedSongs();
+  </script>
+</body>
+</html>

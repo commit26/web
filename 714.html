@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>기억력 테스트! 공룡 카드 뒤집기 게임</title>
+  <!-- Tailwind CSS 로드 (모던한 레이아웃과 디자인을 위해 사용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 카드 뒤집기 애니메이션을 위한 3D 효과 설정 */
+    .perspective {
+      perspective: 1000px;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    /* 카드가 뒤집혔을 때의 상태 */
+    .card-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 0.75rem;
+    }
+    /* 카드 앞면 (이모지가 보이는 곳) */
+    .card-front {
+      transform: rotateY(180deg);
+    }
+    /* 미세한 애니메이션 효과 */
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .pulse-urgent {
+      animation: pulse-slow 0.8s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-between font-sans text-slate-800 antialiased">
+
+  <!-- 헤더 영역 -->
+  <header class="w-full max-w-4xl mx-auto px-4 pt-6 pb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <!-- 홈 버튼과 타이틀 영역 -->
+    <div class="flex items-center gap-3 text-center sm:text-left">
+      <!-- index.html로 이동하는 홈 버튼 링크 -->
+      <a href="index.html" class="p-2.5 bg-white text-slate-600 hover:text-slate-900 rounded-2xl border border-slate-200 hover:bg-slate-50 hover:shadow-sm transition-all active:scale-95 flex items-center justify-center" title="홈으로 이동">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5.5 h-5.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+      </a>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center justify-center sm:justify-start gap-1">
+          🦖 공룡 카드 게임
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">1분 30초 안에 30개의 공룡 카드 쌍을 찾아보세요!</p>
+      </div>
+    </div>
+    
+    <!-- 게임 정보 대시보드 -->
+    <div class="flex items-center gap-4 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
+      <div class="text-center">
+        <span class="block text-xs text-slate-400 font-medium">남은 시간</span>
+        <span id="timer" class="text-xl sm:text-2xl font-bold text-emerald-600 transition-colors duration-300">01:30</span>
+      </div>
+      <div class="h-8 w-px bg-slate-200"></div>
+      <div class="text-center">
+        <span class="block text-xs text-slate-400 font-medium">맞춘 카드</span>
+        <span id="score" class="text-xl sm:text-2xl font-bold text-slate-700">0 / 15</span>
+      </div>
+      <div class="h-8 w-px bg-slate-200"></div>
+      <div class="text-center">
+        <span class="block text-xs text-slate-400 font-medium">시도 횟수</span>
+        <span id="moves" class="text-xl sm:text-2xl font-bold text-slate-700">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 게임 보드 영역 (30개 카드가 알맞게 배치되도록 5x6 비율 설정) -->
+  <main class="w-full max-w-lg mx-auto px-4 py-4 flex-grow flex items-center justify-center relative">
+    <div class="w-full bg-white p-3 sm:p-5 rounded-3xl shadow-md border border-slate-100 relative overflow-hidden">
+      <!-- 5열 그리드 레이아웃, 세로가 더 기므로 aspect-[5/6] 설정 -->
+      <div id="game-board" class="grid grid-cols-5 gap-1.5 sm:gap-2.5 aspect-[5/6] w-full">
+        <!-- 자바스크립트를 통해 동적으로 30개의 카드가 생성됩니다 -->
+      </div>
+
+      <!-- 일시정지 오버레이 (게임이 멈추었을 때 화면을 가려주는 역할) -->
+      <div id="pause-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-10">
+        <div class="bg-slate-100 p-4 rounded-full text-3xl animate-bounce">⏸️</div>
+        <h3 class="text-xl font-bold text-slate-800">게임이 일시정지되었습니다</h3>
+        <p class="text-sm text-slate-500">계속하려면 '이어하기' 버튼을 눌러주세요</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 하단 컨트롤 영역 -->
+  <footer class="w-full max-w-4xl mx-auto px-4 pb-8 pt-2 flex flex-col items-center gap-3">
+    <div class="flex items-center gap-3">
+      <!-- 일시정지 / 이어하기 버튼 -->
+      <button id="pause-btn" class="px-5 py-3 bg-white text-slate-700 font-semibold rounded-2xl hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm text-sm sm:text-base flex items-center gap-2">
+        <span id="pause-icon">⏸️</span>
+        <span id="pause-text">잠시 멈춤</span>
+      </button>
+
+      <!-- 새로 시작하기 버튼 -->
+      <button id="reset-btn" class="px-6 py-3 bg-slate-950 text-white font-semibold rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-950/10 text-sm sm:text-base flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        새로 시작하기
+      </button>
+    </div>
+    <p class="text-xs text-slate-400">제작자: 초보자를 위한 프론트엔드 개발자</p>
+  </footer>
+
+  <!-- 결과 레이어 (게임 종료 시 나타나는 모달 창) -->
+  <div id="result-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300" id="modal-content">
+      <div id="modal-icon" class="text-5xl sm:text-6xl mb-4">🦖</div>
+      <h2 id="modal-title" class="text-2xl font-extrabold text-slate-900">축하합니다!</h2>
+      <p id="modal-message" class="text-slate-500 mt-2 text-sm sm:text-base">모든 공룡 카드를 성공적으로 맞췄습니다.</p>
+      
+      <!-- 기록 요약 -->
+      <div class="bg-slate-50 p-4 rounded-2xl my-5 flex justify-around text-slate-700 text-sm font-medium">
+        <div>
+          <span class="block text-xs text-slate-400">걸린 시간</span>
+          <span id="modal-time" class="text-lg font-bold text-slate-900">35초</span>
+        </div>
+        <div class="w-px bg-slate-200"></div>
+        <div>
+          <span class="block text-xs text-slate-400">시도 횟수</span>
+          <span id="modal-moves" class="text-lg font-bold text-slate-900">18회</span>
+        </div>
+      </div>
+
+      <button id="modal-close-btn" class="w-full py-3.5 bg-slate-950 text-white font-semibold rounded-2xl hover:bg-slate-800 transition-colors active:scale-95 text-sm sm:text-base">
+        다시 도전하기
+      </button>
+    </div>
+  </div>
+
+  <!-- 자바스크립트 소스코드 (게임 로직 제어) -->
+  <script>
+    // 1. 필요한 HTML 태그들을 불러옵니다.
+    const board = document.getElementById('game-board');
+    const timerDisplay = document.getElementById('timer');
+    const scoreDisplay = document.getElementById('score');
+    const movesDisplay = document.getElementById('moves');
+    const resetBtn = document.getElementById('reset-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const pauseIcon = document.getElementById('pause-icon');
+    const pauseText = document.getElementById('pause-text');
+    const pauseOverlay = document.getElementById('pause-overlay');
+    const resultModal = document.getElementById('result-modal');
+    const modalContent = document.getElementById('modal-content');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalTime = document.getElementById('modal-time');
+    const modalMoves = document.getElementById('modal-moves');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+
+    // 2. 카드에 들어갈 귀여운 공룡/알/화석 관련 이모지 15종 설정 (30개 카드 구성)
+    const cardIcons = [
+      '🦖', '🦕', '🐊', '🦎', '🐍', 
+      '🐢', '🐉', '🐲', '🥚', '🌋', 
+      '🌴', '🦴', '☄️', '🌲', '🐾'
+    ];
+    let cardsArray = [];
+    
+    // 3. 게임 상태 변수 선언
+    let flippedCards = []; // 현재 뒤집힌 카드 쌍 저장
+    let matchedPairs = 0;   // 맞춘 카드 쌍의 수
+    let moves = 0;          // 카드를 뒤집은 시도 횟수
+    let timer = 90;         // 기본 제한 시간 변경 (1분 30초 = 90초)
+    let gameInterval = null;
+    let isGameActive = false;
+    let isPaused = false;     // 일시정지 여부 플래그
+    let preventClick = false; // 카드가 맞춰지거나 다시 뒤집힐 동안 클릭을 방지하는 플래그
+
+    // 4. 소리 대신 사용할 미세 진동 피드백 (모바일 지원 기기만 작동)
+    const triggerVibration = (ms) => {
+      if (navigator.vibrate) {
+        navigator.vibrate(ms);
+      }
+    };
+
+    // 5. 카드 섞기 함수 (Fisher-Yates Shuffle 알고리즘)
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 6. 게임판 초기화 및 카드 생성 함수
+    function initGame() {
+      // 상태 초기화
+      clearInterval(gameInterval);
+      board.innerHTML = '';
+      flippedCards = [];
+      matchedPairs = 0;
+      moves = 0;
+      timer = 90; // 90초로 설정
+      isGameActive = true;
+      isPaused = false;
+      preventClick = false;
+      
+      // 일시정지 UI 초기화
+      pauseOverlay.classList.add('opacity-0', 'pointer-events-none');
+      pauseIcon.textContent = '⏸️';
+      pauseText.textContent = '잠시 멈춤';
+      pauseBtn.classList.remove('bg-emerald-500', 'text-white', 'border-transparent');
+      pauseBtn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+
+      // 화면 텍스트 원상복구
+      scoreDisplay.textContent = `0 / ${cardIcons.length}`;
+      movesDisplay.textContent = '0';
+      timerDisplay.textContent = '01:30';
+      timerDisplay.className = 'text-xl sm:text-2xl font-bold text-emerald-600 transition-colors duration-300';
+
+      // 15가지 공룡 관련 아이콘을 2개씩 복사하여 총 30개의 카드 리스트 생성
+      cardsArray = [...cardIcons, ...cardIcons];
+      shuffle(cardsArray);
+
+      // 카드 엘리먼트 동적 생성 및 배치
+      cardsArray.forEach((icon, index) => {
+        const card = document.createElement('div');
+        card.classList.add('perspective', 'cursor-pointer', 'w-full', 'h-full');
+        card.dataset.icon = icon;
+        card.dataset.index = index;
+
+        card.innerHTML = `
+          <div class="card-inner w-full h-full shadow-sm rounded-xl hover:shadow-md transition-shadow duration-300 border border-slate-100">
+            <!-- 뒷면 (기본으로 보이는 하얀색 면) -->
+            <div class="card-back bg-white flex items-center justify-center hover:bg-slate-50 transition-colors duration-200">
+              <span class="text-lg sm:text-xl text-slate-300 font-bold">?</span>
+            </div>
+            <!-- 앞면 (카드 오픈 시 이모지가 보이는 면) -->
+            <div class="card-front bg-slate-50 border-2 border-slate-100 flex items-center justify-center">
+              <span class="text-2xl sm:text-3xl select-none">${icon}</span>
+            </div>
+          </div>
+        `;
+
+        // 카드 클릭 이벤트 부착
+        card.addEventListener('click', () => handleCardClick(card));
+        board.appendChild(card);
+      });
+
+      // 1초마다 감소하는 타이머 구동
+      startTimer();
+    }
+
+    // 7. 1분 30초 카운트다운 타이머 시작 함수
+    function startTimer() {
+      gameInterval = setInterval(() => {
+        if (isPaused) return; // 일시정지 상태라면 카운트다운하지 않음
+
+        timer--;
+        
+        // 분:초 계산하여 화면 표시
+        const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+        const seconds = String(timer % 60).padStart(2, '0');
+        timerDisplay.textContent = `${minutes}:${seconds}`;
+
+        // 시간이 얼마 안 남았을 때 시각적 경고 효과 (15초 이하)
+        if (timer <= 15) {
+          timerDisplay.classList.remove('text-emerald-600');
+          timerDisplay.classList.add('text-rose-500', 'pulse-urgent');
+          triggerVibration(100);
+        }
+
+        // 제한 시간 초과로 게임 패배 처리
+        if (timer <= 0) {
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    // 8. 일시정지 토글 함수
+    function togglePause() {
+      if (!isGameActive) return; // 게임이 끝났거나 시작되지 않았다면 작동 안 함
+
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        // 일시정지 적용
+        triggerVibration(60);
+        pauseOverlay.classList.remove('opacity-0', 'pointer-events-none');
+        pauseIcon.textContent = '▶️';
+        pauseText.textContent = '이어하기';
+        
+        // 일시정지 시 버튼 스타일 시각적으로 더 돋보이게 변경
+        pauseBtn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+        pauseBtn.classList.add('bg-emerald-500', 'text-white', 'border-transparent');
+      } else {
+        // 일시정지 해제 및 재개
+        triggerVibration(40);
+        pauseOverlay.classList.add('opacity-0', 'pointer-events-none');
+        pauseIcon.textContent = '⏸️';
+        pauseText.textContent = '잠시 멈춤';
+
+        pauseBtn.classList.remove('bg-emerald-500', 'text-white', 'border-transparent');
+        pauseBtn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+      }
+    }
+
+    // 9. 카드 뒤집기 클릭 핸들러
+    function handleCardClick(card) {
+      // 일시정지 상태거나, 게임 비활성화, 대기 시간 중이거나 이미 뒤집힌/맞춘 카드는 차단
+      if (isPaused || !isGameActive || preventClick || card.classList.contains('card-flipped') || card.classList.contains('card-matched')) {
+        return;
+      }
+
+      // 카드 뒤집기 클래스 부여
+      card.classList.add('card-flipped');
+      flippedCards.push(card);
+      triggerVibration(50);
+
+      // 뒤집힌 카드가 2개가 되었을 때 똑같은지 비교
+      if (flippedCards.length === 2) {
+        moves++;
+        movesDisplay.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    // 10. 뒤집힌 두 장의 카드가 똑같은지 검증하는 함수
+    function checkMatch() {
+      preventClick = true; // 검증하는 동안 추가 클릭 차단
+
+      const [card1, card2] = flippedCards;
+      const match = card1.dataset.icon === card2.dataset.icon;
+
+      if (match) {
+        // 일치할 때 처리
+        setTimeout(() => {
+          card1.classList.add('card-matched');
+          card2.classList.add('card-matched');
+          
+          // 성공 이펙트 효과 부여
+          card1.querySelector('.card-inner').classList.add('border-emerald-200', 'bg-emerald-50/20');
+          card2.querySelector('.card-inner').classList.add('border-emerald-200', 'bg-emerald-50/20');
+
+          matchedPairs++;
+          scoreDisplay.textContent = `${matchedPairs} / ${cardIcons.length}`;
+          
+          flippedCards = [];
+          preventClick = false;
+
+          // 모든 카드를 다 맞추면 승리 종료
+          if (matchedPairs === cardIcons.length) {
+            endGame(true);
+          }
+        }, 500);
+      } else {
+        // 일치하지 않을 때 처리 (잠시 보여주고 다시 원상태로 뒤집음)
+        setTimeout(() => {
+          card1.classList.remove('card-flipped');
+          card2.classList.remove('card-flipped');
+          flippedCards = [];
+          preventClick = false;
+        }, 800);
+      }
+    }
+
+    // 11. 게임 종료 처리 및 모달 표시 함수
+    function endGame(isVictory) {
+      clearInterval(gameInterval);
+      isGameActive = false;
+
+      // 기록 계산
+      const timeTaken = 90 - timer;
+      modalTime.textContent = `${timeTaken}초`;
+      modalMoves.textContent = `${moves}회`;
+
+      if (isVictory) {
+        modalIcon.textContent = '🦖';
+        modalTitle.textContent = '공룡 탐험 성공!';
+        modalMessage.textContent = '대단해요! 모든 공룡 카드를 완벽하게 맞추셨습니다!';
+      } else {
+        modalIcon.textContent = '🌋';
+        modalTitle.textContent = '화산이 폭발했습니다!';
+        modalMessage.textContent = '시간이 초과되었습니다! 공룡들이 대피하기 전에 더 빠르게 맞춰보세요!';
+      }
+
+      // 모달 표시 애니메이션
+      resultModal.classList.remove('hidden');
+      setTimeout(() => {
+        resultModal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+      }, 50);
+    }
+
+    // 12. 게임 결과 팝업창 닫기 함수
+    function closeModal() {
+      resultModal.classList.add('opacity-0');
+      modalContent.classList.add('scale-95');
+      setTimeout(() => {
+        resultModal.classList.add('hidden');
+        initGame(); // 닫히면서 자동으로 새 게임 시작
+      }, 300);
+    }
+
+    // 13. 각종 이벤트 감지 처리 부착
+    resetBtn.addEventListener('click', () => {
+      triggerVibration([80, 50, 80]);
+      initGame();
+    });
+    
+    // 일시정지 버튼 클릭 이벤트 등록
+    pauseBtn.addEventListener('click', togglePause);
+    modalCloseBtn.addEventListener('click', closeModal);
+
+    // 모달 배경 클릭 시에도 모달이 닫히도록 설정
+    resultModal.addEventListener('click', (e) => {
+      if (e.target === resultModal) {
+        closeModal();
+      }
+    });
+
+    // 14. 최초 브라우저 로딩 시 바로 게임판 생성 및 시작
+    window.onload = () => {
+      initGame();
+    };
+  </script>
+</body>
+</html>

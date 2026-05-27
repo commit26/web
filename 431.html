@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미니 우노 (vs AI)</title>
+    <style>
+        body {
+            background-color: #2c3e50;
+            color: white;
+            font-family: 'Malgun Gothic', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 90vh;
+            position: relative; /* 홈 버튼 위치 기준점 */
+        }
+        
+        /* 🏠 홈 버튼 스타일 */
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: white;
+            background-color: #34495e;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            border: 2px solid #7f8c8d;
+        }
+        .home-btn:hover {
+            background-color: #1abc9c;
+            border-color: #16a085;
+            transform: translateY(-2px);
+        }
+
+        h2 { margin: 10px 0; color: #f1c40f; }
+        .info { font-size: 18px; margin-bottom: 10px; color: #bdc3c7; }
+        
+        /* 카드 스타일 */
+        .card-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 120px;
+        }
+        .card {
+            width: 70px;
+            height: 100px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            border: 2px solid white;
+            text-shadow: 1px 1px 2px black;
+        }
+        .card.hidden {
+            background-color: #34495e;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px);
+            color: transparent;
+            text-shadow: none;
+        }
+        .card.playable {
+            cursor: pointer;
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(241, 196, 15, 0.6);
+            border-color: #f1c40f;
+        }
+        .card.playable:hover { transform: translateY(-10px); }
+
+        /* 중앙 테이블 */
+        .table {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            padding: 30px;
+            background-color: #1a252f;
+            border-radius: 15px;
+            margin: 20px auto;
+            width: fit-content;
+        }
+        .deck {
+            background-color: #7f8c8d;
+            cursor: pointer;
+            position: relative;
+        }
+        .deck::after {
+            content: "카드 뽑기";
+            font-size: 14px;
+            position: absolute;
+            bottom: -25px;
+            width: 100px;
+            left: -15px;
+            color: white;
+            text-shadow: none;
+        }
+        .deck:hover { background-color: #95a5a6; }
+        
+        #message {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2ecc71;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 🏠 추가된 홈 버튼 -->
+    <a href="index.html" class="home-btn">🏠 홈으로</a>
+
+    <div>
+        <h2>🤖 상대방 (AI)</h2>
+        <div class="info">남은 카드: <span id="ai-count">7</span>장</div>
+        <div class="card-container" id="ai-hand"></div>
+    </div>
+
+    <div class="table">
+        <!-- 뽑기 덱 -->
+        <div class="card hidden deck" id="draw-pile" onclick="playerDraw()">UNO</div>
+        <!-- 현재 놓인 카드 -->
+        <div class="card" id="top-card"></div>
+    </div>
+
+    <div>
+        <div id="message">당신의 차례입니다! 낼 수 있는 카드를 클릭하세요.</div>
+        <div class="info">내 카드: <span id="player-count">7</span>장</div>
+        <div class="card-container" id="player-hand"></div>
+    </div>
+
+    <script>
+        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f']; 
+        const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        
+        let deck = [];
+        let playerHand = [];
+        let aiHand = [];
+        let topCard = null;
+        let isPlayerTurn = true;
+
+        // 게임 초기화
+        function initGame() {
+            deck = [];
+            playerHand = [];
+            aiHand = [];
+            
+            for (let c of colors) {
+                for (let v of values) {
+                    deck.push({ color: c, value: v });
+                    deck.push({ color: c, value: v });
+                }
+            }
+            deck.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < 7; i++) {
+                playerHand.push(deck.pop());
+                aiHand.push(deck.pop());
+            }
+
+            topCard = deck.pop();
+            isPlayerTurn = true;
+            updateUI();
+        }
+
+        // 낼 수 있는 카드인지 확인
+        function isValidCard(card) {
+            return card.color === topCard.color || card.value === topCard.value;
+        }
+
+        // 화면 업데이트
+        function updateUI() {
+            const topDiv = document.getElementById('top-card');
+            topDiv.style.backgroundColor = topCard.color;
+            topDiv.innerText = topCard.value;
+
+            const aiDiv = document.getElementById('ai-hand');
+            aiDiv.innerHTML = '';
+            aiHand.forEach(() => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card hidden';
+                aiDiv.appendChild(cardDiv);
+            });
+            document.getElementById('ai-count').innerText = aiHand.length;
+
+            const playerDiv = document.getElementById('player-hand');
+            playerDiv.innerHTML = '';
+            playerHand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.style.backgroundColor = card.color;
+                cardDiv.innerText = card.value;
+                
+                if (isPlayerTurn && isValidCard(card)) {
+                    cardDiv.classList.add('playable');
+                    cardDiv.onclick = () => playCard('player', index);
+                }
+                playerDiv.appendChild(cardDiv);
+            });
+            document.getElementById('player-count').innerText = playerHand.length;
+
+            checkWin();
+        }
+
+        // 덱에서 카드 뽑기
+        function playerDraw() {
+            if (!isPlayerTurn) return;
+            
+            if (playerHand.some(isValidCard)) {
+                showMessage("낼 수 있는 카드가 있습니다!", "orange");
+                return;
+            }
+
+            drawCard(playerHand);
+            showMessage("카드를 1장 뽑았습니다. AI의 차례입니다.", "white");
+            isPlayerTurn = false;
+            updateUI();
+            setTimeout(aiTurn, 1500);
+        }
+
+        function drawCard(hand) {
+            if (deck.length === 0) {
+                alert("덱이 바닥났습니다! 무승부로 게임을 다시 시작합니다.");
+                initGame();
+                return;
+            }
+            hand.push(deck.pop());
+        }
+
+        // 카드 내기
+        function playCard(who, index) {
+            if (who === 'player') {
+                topCard = playerHand.splice(index, 1)[0];
+                isPlayerTurn = false;
+                showMessage("AI가 생각 중입니다...", "white");
+                updateUI();
+                
+                if (playerHand.length > 0) {
+                    setTimeout(aiTurn, 1500); 
+                }
+            } else {
+                topCard = aiHand.splice(index, 1)[0];
+                isPlayerTurn = true;
+                showMessage("당신의 차례입니다! 낼 수 있는 카드를 클릭하세요.", "#2ecc71");
+                updateUI();
+            }
+        }
+
+        // AI 로직
+        function aiTurn() {
+            const validIndex = aiHand.findIndex(isValidCard);
+            
+            if (validIndex !== -1) {
+                playCard('ai', validIndex);
+            } else {
+                drawCard(aiHand);
+                isPlayerTurn = true;
+                showMessage("AI가 카드를 1장 뽑았습니다. 당신의 차례입니다!", "#2ecc71");
+                updateUI();
+            }
+        }
+
+        // 메시지 출력
+        function showMessage(text, color) {
+            const msgBox = document.getElementById('message');
+            msgBox.innerText = text;
+            msgBox.style.color = color;
+        }
+
+        // 승리 조건
+        function checkWin() {
+            if (playerHand.length === 0) {
+                setTimeout(() => { alert("🎉 당신의 승리입니다!"); initGame(); }, 100);
+            } else if (aiHand.length === 0) {
+                setTimeout(() => { alert("😭 AI의 승리입니다! 다시 도전해보세요."); initGame(); }, 100);
+            } else if (playerHand.length === 1) {
+                showMessage("UNO! (내 카드 1장 남음)", "#e74c3c");
+            } else if (aiHand.length === 1) {
+                showMessage("AI가 UNO를 외쳤습니다!", "#e74c3c");
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

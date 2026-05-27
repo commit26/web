@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 돌림판</title>
+    <!-- Tailwind CSS를 가져와서 디자인을 빠르고 깔끔하게 적용합니다 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 폰트와 굵은 검은색 텍스트 설정 */
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+        }
+        /* 스크롤바 숨기기 등 깔끔한 마감을 위한 설정 */
+        textarea {
+            resize: none;
+        }
+        canvas {
+            /* 캔버스 그림자 효과로 입체감 부여 */
+            filter: drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.1));
+        }
+    </style>
+</head>
+<!-- 배경은 연한 핑크색(bg-[#FFE4E1]), 글씨는 굵은 검은색(font-bold text-black) -->
+<body class="bg-[#FFE4E1] font-bold text-black min-h-screen flex flex-col justify-center items-center p-4">
+
+    <div class="text-center mb-8">
+        <h1 class="text-4xl md:text-5xl mb-2">🎯 행운의 돌림판</h1>
+        <p class="text-gray-700 font-medium">항목을 입력하고 시작 버튼을 눌러보세요!</p>
+    </div>
+
+    <!-- 메인 레이아웃: 왼쪽(입력 및 버튼) / 오른쪽(돌림판) -->
+    <div class="flex flex-col md:flex-row gap-10 items-center w-full max-w-5xl bg-white/40 p-8 rounded-3xl shadow-xl border-2 border-white">
+        
+        <!-- 왼쪽 입력 영역 -->
+        <div class="w-full md:w-1/3 flex flex-col gap-4">
+            <label for="itemInput" class="text-xl">돌림판 항목 입력</label>
+            <textarea id="itemInput" rows="8" class="w-full p-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:border-[#C4A484] shadow-inner text-lg font-bold" placeholder="여기에 항목을 입력하세요.&#13;&#10;(한 줄에 하나씩 입력됩니다)"></textarea>
+            
+            <div id="statusMessage" class="text-red-500 h-6 text-sm"></div>
+
+            <div class="flex gap-2">
+                <button id="spinBtn" class="flex-1 bg-black text-white text-xl py-3 rounded-xl shadow-md hover:bg-gray-800 transition active:scale-95">시작</button>
+                <button id="resetBtn" class="flex-1 bg-white text-black border-2 border-black text-xl py-3 rounded-xl shadow-md hover:bg-gray-100 transition active:scale-95">초기화</button>
+            </div>
+        </div>
+
+        <!-- 오른쪽 돌림판 영역 -->
+        <div class="w-full md:w-2/3 relative flex justify-center items-center">
+            <!-- 화살표 (오른쪽에 위치) -->
+            <div class="absolute right-[-10px] md:right-0 top-1/2 -translate-y-1/2 z-10">
+                <!-- 빨간색 삼각형 화살표 -->
+                <div class="w-0 h-0 border-t-[20px] border-t-transparent border-b-[20px] border-b-transparent border-r-[35px] border-r-red-500 drop-shadow-md"></div>
+            </div>
+            
+            <!-- 돌림판 캔버스 -->
+            <canvas id="wheel" width="500" height="500" class="max-w-full h-auto"></canvas>
+        </div>
+    </div>
+
+    <!-- 당첨 결과 모달 -->
+    <div id="winnerModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex flex-col justify-center items-center w-full h-full">
+        <h2 class="text-4xl md:text-6xl text-yellow-300 mb-6 font-black drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">🎉 축하합니다! 🎉</h2>
+        <p id="winnerText" class="text-7xl md:text-9xl font-black text-white my-8 text-center break-keep drop-shadow-[0_10px_10px_rgba(0,0,0,1)]">당첨</p>
+        <button onclick="document.getElementById('winnerModal').classList.add('hidden')" class="mt-10 bg-white text-black border-4 border-black font-black px-12 py-4 rounded-full text-3xl hover:bg-pink-300 transition active:scale-95 shadow-[0_5px_0_rgba(0,0,0,1)]">확인</button>
+    </div>
+
+    <!-- 필수 포함 요소: 우측 하단 메인으로 돌아가기 버튼 -->
+    <a href="index.html" class="fixed bottom-6 right-6 bg-white border-4 border-black text-black px-6 py-3 rounded-full shadow-2xl hover:bg-black hover:text-white transition duration-300 z-50 text-lg">
+        메인으로 돌아가기
+    </a>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const itemInput = document.getElementById('itemInput');
+        const spinBtn = document.getElementById('spinBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 연한 파스텔 색상 배열 (갯수에 따라 반복해서 사용됨)
+        const pastelColors = [
+            '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', 
+            '#E8BAFF', '#F3FFE3', '#E0BBE4', '#957DAD', '#D291BC', 
+            '#FEC8D8', '#FFDFD3'
+        ];
+        
+        // 연한 고동색 (테두리 및 빈 돌림판 배경)
+        const brownColor = '#C4A484'; 
+
+        let items = [];
+        let currentAngle = 0;
+        let isSpinning = false;
+        let spinVelocity = 0;
+        let animationId;
+
+        // 캔버스 중심점과 반지름
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = 230; // 500 사이즈 안에서 꽉 차게 그림
+
+        // 입력창 내용이 바뀔 때마다 항목 배열 업데이트 및 다시 그리기
+        itemInput.addEventListener('input', updateItems);
+
+        function updateItems() {
+            // 줄바꿈으로 나누고 빈 칸 지우기
+            const lines = itemInput.value.split('\n').map(line => line.trim()).filter(line => line !== '');
+            items = lines;
+            if (items.length > 0) statusMessage.textContent = '';
+            drawWheel();
+        }
+
+        // 돌림판 그리기 함수
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 아무것도 쓰지 않은 경우 (비어있을 때)
+            if (items.length === 0) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = brownColor; // 바탕을 연한 고동색으로
+                ctx.fill();
+                
+                // 테두리도 고동색으로 (조금 더 진하게)
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = '#A67B5B'; 
+                ctx.stroke();
+
+                // 하얀 글씨로 안내문 출력
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 30px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('항목을 입력하세요', cx, cy);
+                return;
+            }
+
+            // 항목이 있을 경우 조각(Slice) 그리기
+            const sliceAngle = (2 * Math.PI) / items.length;
+
+            for (let i = 0; i < items.length; i++) {
+                const startAngle = currentAngle + (i * sliceAngle);
+                const endAngle = startAngle + sliceAngle;
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, startAngle, endAngle);
+                
+                // 색상 지정
+                ctx.fillStyle = pastelColors[i % pastelColors.length];
+                ctx.fill();
+
+                // 연한 고동색 테두리 지정
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = brownColor;
+                ctx.stroke();
+
+                // 텍스트 그리기
+                ctx.save();
+                ctx.translate(cx, cy);
+                // 글씨를 조각의 중간 각도로 회전
+                ctx.rotate(startAngle + sliceAngle / 2);
+                
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "black";
+                ctx.font = "bold 22px sans-serif";
+                
+                // 텍스트가 너무 길면 잘리도록 최대 너비 설정 (radius - 50)
+                ctx.fillText(items[i], radius - 30, 0, radius - 60); 
+                ctx.restore();
+            }
+            
+            // 중앙에 작은 중심원 하나 그려서 깔끔하게 마무리
+            ctx.beginPath();
+            ctx.arc(cx, cy, 15, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = brownColor;
+            ctx.stroke();
+        }
+
+        // 애니메이션(회전) 함수
+        function animate(timestamp) {
+            if (!animationStartTime) animationStartTime = timestamp;
+            const progress = timestamp - animationStartTime;
+            
+            // 처음엔 빠르고 나중에 서서히 멈추는 수학 함수 적용 (easeOutQuart)
+            const t = Math.min(progress / animationDuration, 1);
+            const ease = 1 - Math.pow(1 - t, 4);
+
+            currentAngle = startAngleObj + (targetAngleObj - startAngleObj) * ease;
+            drawWheel();
+
+            if (t < 1) {
+                animationId = requestAnimationFrame(animate);
+            } else {
+                isSpinning = false;
+                spinBtn.textContent = '시작';
+                showWinner(items[targetItemIndex]); // 멈추면 모달 띄우기
+            }
+        }
+
+        // 시작 버튼 클릭 이벤트
+        spinBtn.addEventListener('click', () => {
+            if (items.length === 0) {
+                statusMessage.textContent = '돌림판을 돌리려면 먼저 항목을 입력해주세요!';
+                return;
+            }
+
+            if (isSpinning) {
+                // 정확히 안착해야 하므로 돌고 있을 때 중간에 멈추는 기능은 막아둡니다.
+                return;
+            } else {
+                // 기존 모달 숨기기
+                const modal = document.getElementById('winnerModal');
+                if (modal) modal.classList.add('hidden');
+                
+                isSpinning = true;
+                spinBtn.textContent = '회전 중...';
+                
+                const sliceAngle = (2 * Math.PI) / items.length;
+                
+                // 이번에 당첨될 항목을 미리 랜덤으로 결정합니다
+                targetItemIndex = Math.floor(Math.random() * items.length);
+                
+                // 선에 걸치지 않도록 조각 내부의 10% ~ 90% 사이의 안전한 위치를 오프셋으로 설정
+                const safeOffset = sliceAngle * (0.1 + Math.random() * 0.8); 
+                
+                const spins = 5 + Math.floor(Math.random() * 5); // 5~9바퀴 회전
+                const currentBase = currentAngle % (2 * Math.PI);
+                
+                startAngleObj = currentAngle;
+                // 해당 항목이 정확히 포인터(0도)에 오도록 목표 각도를 역산하여 계산
+                targetAngleObj = currentAngle - currentBase + (spins * 2 * Math.PI) - (targetItemIndex * sliceAngle) - safeOffset;
+                
+                animationDuration = 4000 + Math.random() * 2000; // 4~6초 동안 회전
+                animationStartTime = null;
+                
+                animationId = requestAnimationFrame(animate);
+            }
+        });
+
+        // 당첨 결과 보여주기 함수
+        function showWinner(winner) {
+            const modal = document.getElementById('winnerModal');
+            const winnerText = document.getElementById('winnerText');
+            if (modal && winnerText) {
+                winnerText.textContent = winner + " 당첨!"; 
+                modal.classList.remove('hidden');
+            }
+        }
+
+        // 초기화 버튼 클릭 이벤트
+        resetBtn.addEventListener('click', () => {
+            if (isSpinning) {
+                cancelAnimationFrame(animationId);
+                isSpinning = false;
+            }
+            itemInput.value = ''; // 입력창 비우기
+            items = [];           // 항목 배열 비우기
+            currentAngle = 0;     // 각도 초기화
+            spinVelocity = 0;
+            spinBtn.textContent = '시작';
+            statusMessage.textContent = '';
+            
+            const modal = document.getElementById('winnerModal');
+            if (modal) modal.classList.add('hidden'); // 모달 숨기기
+
+            drawWheel();          // 빈 돌림판으로 다시 그리기
+        });
+
+        // 처음 화면 로딩 시 빈 돌림판 한 번 그리기
+        drawWheel();
+
+    </script>
+</body>
+</html>

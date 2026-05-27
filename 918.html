@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 나만의 플레이리스트 공유 보드</title>
+    <style>
+        /* 애니메이션 정의 */
+        @keyframes fadeInSlide {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(120%); opacity: 0; }
+        }
+
+        /* 기본 스타일 */
+        body {
+            margin: 0; padding: 0; min-height: 100vh;
+            background: linear-gradient(-45deg, #2e1a47 0%, #17181c 45%, #131417 55%, #136a3f 100%);
+            background-size: 400% 400%;
+            animation: gradientMove 10s ease infinite;
+            color: #ffffff; font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 상단 전용 네비게이션 바 */
+        .auth-bar {
+            position: fixed; top: 0; left: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 30px; box-sizing: border-box; z-index: 900;
+            background: rgba(0,0,0,0.3); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .nav-home-logo {
+            color: #ffffff; text-decoration: none; font-size: 1.2rem; font-weight: 800;
+            display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+            letter-spacing: -0.5px;
+        }
+        .nav-home-logo:hover {
+            color: #1db954; transform: scale(1.02);
+        }
+
+        .auth-right-group {
+            display: flex; align-items: center; gap: 15px;
+        }
+        .user-info { font-size: 0.95rem; color: #1db954; font-weight: bold; }
+        .auth-btn {
+            background-color: transparent; border: 1px solid #555; color: white;
+            padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .auth-btn:hover { border-color: #1db954; color: #1db954; }
+        .auth-btn.logout { background-color: #333; }
+        
+        .auth-btn.my-board { background-color: rgba(29, 185, 84, 0.2); border-color: #1db954; color: #1db954; }
+        .auth-btn.my-board:hover { background-color: #1db954; color: white; }
+
+        /* [화면 1] 메인 홈 섹션 */
+        .home-section {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .home-section.hide { display: none; }
+
+        h1 {
+            font-size: 2.8rem; margin-bottom: 30px; font-weight: 800; letter-spacing: -1px;
+            text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            opacity: 0; animation: fadeInSlide 1s ease-out forwards; animation-delay: 0.3s;
+        }
+
+        .share-btn {
+            background-color: #1db954; color: white; border: none; padding: 18px 45px;
+            font-size: 1.2rem; font-weight: bold; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4); transition: all 0.2s ease-in-out;
+            opacity: 0; animation: fadeInSlide 1s ease-out forwards; animation-delay: 0.8s;
+        }
+        .share-btn:hover { transform: scale(1.05) translateY(-3px); background-color: #1ed760; }
+
+        /* [화면 2] 공유된 리스트 섹션 */
+        .list-section { display: none; max-width: 800px; margin: 80px auto 0 auto; padding: 40px 20px; box-sizing: border-box; }
+        .list-section.active { display: block; }
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 20px; }
+        .list-header h2 { margin: 0; font-size: 1.8rem; font-weight: 800; color: #1db954; }
+        
+        .header-buttons { display: flex; gap: 10px; }
+        .back-btn, .explore-btn {
+            color: white; border: none; padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
+        }
+        .back-btn { background-color: #333; }
+        .back-btn:hover { background-color: #444; }
+        .explore-btn { background-color: #1db954; }
+        .explore-btn:hover { background-color: #1ed760; }
+
+        .list-subtitle { font-size: 1.1rem; color: #aaa; margin-bottom: 25px; font-weight: 600; }
+
+        /* 음악 리스트 레이아웃 */
+        .music-grid { display: flex; flex-direction: column; gap: 15px; }
+        .music-card {
+            background-color: #181818; border: 1px solid #282828; border-radius: 12px;
+            padding: 20px; display: flex; align-items: center; gap: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: fadeInSlide 0.5s ease-out forwards;
+        }
+        
+        /* 💿 고정형 음반 디자인 구역 */
+        .album-cover-box {
+            width: 70px; height: 70px; background: linear-gradient(135deg, #1db954, #6f15ff);
+            border-radius: 8px; display: flex; justify-content: center; align-items: center; 
+            font-size: 1.8rem; overflow: hidden; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+        
+        .music-info { flex-grow: 1; min-width: 0; }
+        .music-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .music-artist { font-size: 0.95rem; color: #1db954; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .music-uploader { font-size: 0.8rem; color: #777; margin-bottom: 8px; }
+        .music-story { font-size: 0.9rem; color: #aaa; line-height: 1.4; word-break: break-all; }
+
+        .youtube-link-btn {
+            background-color: #ff0000; color: white; text-decoration: none;
+            padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;
+            display: flex; align-items: center; gap: 6px; transition: background 0.2s, transform 0.2s;
+            white-space: nowrap; box-shadow: 0 4px 10px rgba(255, 0, 0, 0.2); flex-shrink: 0;
+        }
+        .youtube-link-btn:hover { background-color: #cc0000; transform: scale(1.03); }
+
+        .empty-message { text-align: center; padding: 40px 0; color: #888; font-size: 1.05rem; line-height: 1.5; }
+
+        /* 모달 오버레이 스타일 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            background-color: #1e1e1e; border: 1px solid #333; border-radius: 20px;
+            padding: 30px; width: 90%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-overlay.active .modal-box { animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .modal-box h2 { margin-top: 0; font-size: 1.5rem; color: #1db954; margin-bottom: 20px; }
+        
+        .auth-tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .auth-tab { background: none; border: none; color: #666; font-size: 1.1rem; font-weight: bold; cursor: pointer; padding: 0; }
+        .auth-tab.active { color: #1db954; }
+
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
+        .form-group input, .form-group textarea {
+            background-color: #252525; border: 1px solid #444; border-radius: 8px;
+            padding: 12px; color: #fff; font-size: 0.95rem; outline: none;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #1db954; }
+        .form-group textarea { resize: none; height: 80px; }
+
+        /* 유저 검색결과 디자인 */
+        .search-results {
+            margin-top: 15px; max-height: 180px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .user-result-item {
+            background-color: #252525; border: 1px solid #333; padding: 12px;
+            border-radius: 8px; cursor: pointer; text-align: left; color: white;
+            font-weight: bold; font-size: 0.95rem; transition: all 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .user-result-item:hover { border-color: #1db954; background-color: #2a2a2a; }
+        .user-result-item span { color: #1db954; font-size: 0.8rem; }
+        
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-close, .btn-submit { padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; color: white; }
+        .btn-close { background-color: #444; }
+        .btn-submit { background-color: #1db954; }
+
+        /* 알림창(Toast) 디자인 */
+        .toast-container { position: fixed; top: 30px; right: 30px; z-index: 2000; }
+        .toast {
+            background-color: #1e1e1e; border-left: 5px solid #1db954;
+            border-top: 1px solid #333; border-right: 1px solid #333; border-bottom: 1px solid #333;
+            color: #ffffff; padding: 18px 24px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin-bottom: 15px;
+            display: flex; flex-direction: column; gap: 12px; width: 320px; position: relative;
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .toast.warning { border-left-color: #ff4757; }
+        .toast-header { display: flex; align-items: flex-start; gap: 10px; padding-right: 20px; font-size: 0.95rem; font-weight: 600; line-height: 1.4; }
+        .toast-close-btn { position: absolute; top: 14px; right: 16px; background: none; border: none; color: #666; font-size: 1.1rem; cursor: pointer; }
+        
+        .toast-action-btn {
+            background-color: #282828; border: 1px solid #444; color: #1db954;
+            padding: 10px 12px; font-size: 0.85rem; font-weight: bold; border-radius: 6px;
+            cursor: pointer; text-align: center; transition: all 0.2s; display: block;
+        }
+        .toast-action-btn:hover { background-color: #1db954; color: #ffffff; border-color: #1db954; }
+        .toast.hide { animation: slideOut 0.4s ease forwards; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-bar">
+        <a href="index.html" class="nav-home-logo">🎵 HOME</a>
+        <div class="auth-right-group" id="authContainer">
+            <button class="auth-btn" id="openAuthModalBtn" onclick="openAuthModal()">로그인 / 회원가입</button>
+        </div>
+    </div>
+
+    <div class="home-section" id="homeSection">
+        <h1>당신의 플레이리스트를 공유하세요!</h1>
+        <button class="share-btn" id="openModalBtn">공유하기</button>
+    </div>
+
+    <div class="list-section" id="listSection">
+        <div class="list-header">
+            <h2>🎵 플레이리스트 보드</h2>
+            <div class="header-buttons">
+                <button class="explore-btn" id="openExploreBtn">다른 사람들의 플레이리스트 구경하기</button>
+                <button class="back-btn" id="backToHomeBtn">← 다시 공유하기</button>
+            </div>
+        </div>
+        <div class="list-subtitle" id="listSubtitle">내 플레이리스트 목록</div>
+        <div class="music-grid" id="musicGrid"></div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h2>🎵 음악 공유하기</h2>
+            <div class="form-group"><label>노래 제목</label><input type="text" id="songTitle" placeholder="예: Dynamite"></div>
+            <div class="form-group"><label>아티스트</label><input type="text" id="artistName" placeholder="예: 방탄소년단"></div>
+            <div class="form-group"><label>추천 이유 / 사연</label><textarea id="songStory" placeholder="이 음악을 추천하는 이유를 적어주세요!"></textarea></div>
+            <div class="modal-buttons">
+                <button class="btn-close" id="closeModalBtn">취소</button>
+                <button class="btn-submit" id="submitBtn">등록하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="authModalOverlay">
+        <div class="modal-box">
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin">로그인</button>
+                <button class="auth-tab" id="tabRegister">회원가입</button>
+            </div>
+            <div class="form-group"><label>아이디</label><input type="text" id="authId" placeholder="아이디를 입력하세요"></div>
+            <div class="form-group" id="nickGroup" style="display: none;"><label>닉네임</label><input type="text" id="authNick" placeholder="사용할 닉네임을 입력하세요"></div>
+            <div class="form-group"><label>비밀번호</label><input type="password" id="authPw" placeholder="비밀번호를 입력하세요"></div>
+            <div class="modal-buttons">
+                <button class="btn-close" id="closeAuthModalBtn">닫기</button>
+                <button class="btn-submit" id="authSubmitBtn">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="exploreModalOverlay">
+        <div class="modal-box">
+            <h2>🔍 유저 검색</h2>
+            <div class="form-group">
+                <label>닉네임을 입력하고 <b style="color:#1db954;">[Enter]</b> 키를 누르세요</label>
+                <input type="text" id="searchNickInput" placeholder="예: 홍길동, 아이유">
+            </div>
+            <div class="search-results" id="searchResultsContainer"></div>
+            <div class="modal-buttons">
+                <button class="btn-close" id="closeExploreModalBtn">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // DOM 요소들
+        const homeSection = document.getElementById('homeSection'), listSection = document.getElementById('listSection'), listSubtitle = document.getElementById('listSubtitle');
+        const openModalBtn = document.getElementById('openModalBtn'), closeModalBtn = document.getElementById('closeModalBtn'), modalOverlay = document.getElementById('modalOverlay'), submitBtn = document.getElementById('submitBtn');
+        const closeAuthModalBtn = document.getElementById('closeAuthModalBtn'), authModalOverlay = document.getElementById('authModalOverlay'), authSubmitBtn = document.getElementById('authSubmitBtn');
+        const tabLogin = document.getElementById('tabLogin'), tabRegister = document.getElementById('tabRegister'), nickGroup = document.getElementById('nickGroup'), authIdInput = document.getElementById('authId'), authNickInput = document.getElementById('authNick'), authPwInput = document.getElementById('authPw'), authContainer = document.getElementById('authContainer');
+        const openExploreBtn = document.getElementById('openExploreBtn'), exploreModalOverlay = document.getElementById('exploreModalOverlay'), searchNickInput = document.getElementById('searchNickInput'), searchResultsContainer = document.getElementById('searchResultsContainer');
+        const backToHomeBtn = document.getElementById('backToHomeBtn'), musicGrid = document.getElementById('musicGrid'), toastContainer = document.getElementById('toastContainer');
+
+        // 상태 데이터 관리
+        let currentMode = 'login';
+        let currentUser = null;       
+        let currentUserNick = null;   
+        let targetViewId = null;      
+        let targetViewNick = null;    
+
+        const getUsers = () => {
+            let data = localStorage.getItem('boardUsers');
+            try { return data ? JSON.parse(data) : {}; } catch (e) { return {}; }
+        }; 
+        const getSongs = () => {
+            let data = localStorage.getItem('boardSongs');
+            try { return data ? JSON.parse(data) : []; } catch (e) { return []; }
+        };  
+        
+        window.addEventListener('load', () => {
+            // [자동 치유 시스템] 실행 즉시 구버전 데이터가 감지되면 조용히 포맷팅해 꼬임을 방지합니다.
+            autoFixCollisionAndInit();
+
+            const savedUser = sessionStorage.getItem('currentUser');
+            const savedNick = sessionStorage.getItem('currentUserNick');
+            if(savedUser && savedNick) {
+                currentUser = savedUser;
+                currentUserNick = savedNick;
+            }
+            updateAuthBar();
+        });
+
+        // 유저가 개입할 필요 없는 완벽한 백그라운드 데이터 정돈 로직
+        function autoFixCollisionAndInit() {
+            const users = getUsers();
+            const songs = getSongs();
+            
+            // 데이터 형식이 아예 없거나, 예전 이미지 연동 시절의 깨진 데이터 구조가 남아있을 경우 자동 청소
+            const needClean = Object.keys(users).length === 0 || (songs.length > 0 && songs[0].hasOwnProperty('coverUrl'));
+            
+            if (needClean) {
+                localStorage.removeItem('boardUsers');
+                localStorage.removeItem('boardSongs');
+                sessionStorage.clear();
+                
+                const mockUsers = {
+                    "user1": { pw: "1234", nick: "홍길동" },
+                    "user2": { pw: "1234", nick: "이순신" },
+                    "user3": { pw: "1234", nick: "아이유" }
+                };
+                localStorage.setItem('boardUsers', JSON.stringify(mockUsers));
+
+                const mockSongs = [
+                    { title: "Dynamite", artist: "방탄소년단", story: "신나고 경쾌한 팝송이에요!", uploaderId: "user1", uploaderNick: "홍길동" },
+                    { title: "봄날", artist: "방탄소년단", story: "아련한 감성의 최애곡입니다.", uploaderId: "user1", uploaderNick: "홍길동" },
+                    { title: "에잇(Eight)", artist: "아이유", story: "드라이브할 때 들으면 최고!", uploaderId: "user3", uploaderNick: "아이유" },
+                    { title: "밤편지", artist: "아이유", story: "잠안오는 밤에 듣기 좋은 발라드", uploaderId: "user3", uploaderNick: "아이유" }
+                ];
+                localStorage.setItem('boardSongs', JSON.stringify(mockSongs));
+            }
+        }
+
+        backToHomeBtn.addEventListener('click', () => {
+            listSection.classList.remove('active');
+            homeSection.classList.remove('hide');
+            if (!currentUser) {
+                showToast("음악을 공유하려면 먼저 로그인해 주세요!", "warning");
+                authModalOverlay.classList.add('active');
+            } else {
+                modalOverlay.classList.add('active');
+            }
+        });
+
+        function showListPage(targetId = null, targetNick = null) {
+            targetViewId = targetId || currentUser;
+            targetViewNick = targetNick || currentUserNick;
+
+            homeSection.classList.add('hide');
+            listSection.classList.add('active');
+            renderPlaylist();
+        }
+
+        function renderPlaylist() {
+            musicGrid.innerHTML = '';
+            
+            if (targetViewId === currentUser) {
+                listSubtitle.innerText = `💚 내 플레이리스트 목록 (${currentUserNick}님)`;
+            } else {
+                listSubtitle.innerText = `🔍 ${targetViewNick}님의 플레이리스트 구경 중`;
+            }
+
+            const songs = getSongs();
+            const filteredSongs = songs.filter(song => song.uploaderId === targetViewId);
+
+            if (filteredSongs.length === 0) {
+                musicGrid.innerHTML = `<div class="empty-message">아직 공유된 플레이리스트가 없습니다.</div>`;
+                return;
+            }
+
+            [...filteredSongs].reverse().forEach(item => {
+                const searchQuery = encodeURIComponent(`${item.title} ${item.artist} 자막`);
+                const youtubeUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+
+                const card = document.createElement('div');
+                card.classList.add('music-card');
+                card.innerHTML = `
+                    <div class="album-cover-box">💿</div>
+                    <div class="music-info">
+                        <div class="music-title">${escapeHtml(item.title)}</div>
+                        <div class="music-artist">${escapeHtml(item.artist)}</div>
+                        <div class="music-uploader">공유자: ${escapeHtml(item.uploaderNick)}</div>
+                        ${item.story ? `<div class="music-story">" ${escapeHtml(item.story)} "</div>` : ''}
+                    </div>
+                    <a href="${youtubeUrl}" target="_blank" class="youtube-link-btn">
+                        ▶ 지금 들으러 가기
+                    </a>
+                `;
+                musicGrid.appendChild(card);
+            });
+        }
+
+        searchNickInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                executeUserSearch();
+            }
+        });
+
+        function executeUserSearch() {
+            searchResultsContainer.innerHTML = '';
+            const keyword = searchNickInput.value.trim().toLowerCase();
+            
+            if(!keyword) {
+                searchResultsContainer.innerHTML = `<div class="empty-message">검색어를 입력해 주세요!</div>`;
+                return;
+            }
+
+            const users = getUsers();
+            let hasResult = false;
+
+            for (let id in users) {
+                const uNick = users[id].nick;
+                if(uNick && uNick.toLowerCase().includes(keyword)) {
+                    hasResult = true;
+                    const itemDiv = document.createElement('button');
+                    itemDiv.classList.add('user-result-item');
+                    itemDiv.innerHTML = `${escapeHtml(uNick)} <span>방문하기 →</span>`;
+                    
+                    itemDiv.onclick = () => {
+                        exploreModalOverlay.classList.remove('active');
+                        searchNickInput.value = '';
+                        searchResultsContainer.innerHTML = '';
+                        showListPage(id, uNick);
+                    };
+                    searchResultsContainer.appendChild(itemDiv);
+                }
+            }
+
+            if(!hasResult) {
+                searchResultsContainer.innerHTML = `
+                    <div class="empty-message" style="color: #ff4757; font-weight: bold; padding: 20px 0;">
+                        ⚠️ 일치하는 유저가 존재하지 않습니다.
+                    </div>`;
+            }
+        }
+
+        function updateAuthBar() {
+            if (currentUser) {
+                authContainer.innerHTML = `
+                    <button class="auth-btn my-board" onclick="showListPage()">내 플레이리스트 보기</button>
+                    <span class="user-info">💚 ${currentUserNick}님</span>
+                    <button class="auth-btn logout" onclick="handleLogout()">로그아웃</button>
+                `;
+            } else {
+                authContainer.innerHTML = `
+                    <button class="auth-btn" id="openAuthModalBtn" onclick="openAuthModal()">로그인 / 회원가입</button>
+                `;
+            }
+        }
+
+        window.openAuthModal = function() {
+            authModalOverlay.classList.add('active');
+        }
+
+        window.handleLogout = function() {
+            currentUser = null; currentUserNick = null;
+            sessionStorage.clear();
+            updateAuthBar();
+            showToast("로그아웃 되었습니다.");
+            listSection.classList.remove('active');
+            homeSection.classList.remove('hide');
+        }
+
+        tabLogin.addEventListener('click', () => {
+            currentMode = 'login'; tabLogin.classList.add('active'); tabRegister.classList.remove('active');
+            nickGroup.style.display = 'none'; authSubmitBtn.innerText = '로그인';
+        });
+        tabRegister.addEventListener('click', () => {
+            currentMode = 'register'; tabRegister.classList.add('active'); tabLogin.classList.remove('active');
+            nickGroup.style.display = 'flex'; authSubmitBtn.innerText = '회원가입 완료';
+        });
+
+        authSubmitBtn.addEventListener('click', () => {
+            const id = authIdInput.value.trim();
+            const pw = authPwInput.value.trim();
+            const nick = authNickInput.value.trim();
+            const users = getUsers();
+
+            if (currentMode === 'register') {
+                if(!id || !pw || !nick) { showToast("모든 빈칸을 채워주세요.", "warning"); return; }
+                if (users[id]) { showToast("이미 존재하는 아이디입니다.", "warning"); return; }
+                
+                for(let u in users) {
+                    if(users[u].nick === nick) { showToast("이미 사용 중인 닉네임입니다.", "warning"); return; }
+                }
+
+                users[id] = { pw: pw, nick: nick };
+                localStorage.setItem('boardUsers', JSON.stringify(users));
+                showToast("회원가입 완료! 로그인해 주세요.");
+                tabLogin.click();
+                authNickInput.value = '';
+            } else {
+                if(!id || !pw) { showToast("아이디와 비밀번호를 적어주세요.", "warning"); return; }
+                if (users[id] && users[id].pw === pw) {
+                    currentUser = id;
+                    currentUserNick = users[id].nick;
+                    sessionStorage.setItem('currentUser', id);
+                    sessionStorage.setItem('currentUserNick', currentUserNick);
+                    updateAuthBar();
+                    showToast(`${currentUserNick}님, 환영합니다!`);
+                    authModalOverlay.classList.remove('active');
+                    authIdInput.value = ''; authPwInput.value = '';
+                } else {
+                    showToast("아이디 또는 비밀번호가 올바르지 않습니다.", "warning");
+                }
+            }
+        });
+
+        submitBtn.addEventListener('click', () => {
+            if (!currentUser) { showToast("로그인이 필요합니다.", "warning"); return; }
+            const title = document.getElementById('songTitle').value.trim();
+            const artist = document.getElementById('artistName').value.trim();
+            const story = document.getElementById('songStory').value.trim();
+            
+            if(!title || !artist) { showToast("노래 제목과 가수를 채워주세요!", "warning"); return; }
+
+            const songs = getSongs();
+            songs.push({ title, artist, story, uploaderId: currentUser, uploaderNick: currentUserNick });
+            localStorage.setItem('boardSongs', JSON.stringify(songs));
+
+            showToast(`"${title}" 음악이 내 목록에 추가되었습니다.`);
+            modalOverlay.classList.remove('active');
+            document.getElementById('songTitle').value = ""; document.getElementById('artistName').value = ""; document.getElementById('songStory').value = "";
+        });
+
+        openModalBtn.addEventListener('click', () => {
+            if(!currentUser) { showToast("공유하기 전 먼저 상단에서 로그인해 주세요!", "warning"); authModalOverlay.classList.add('active'); return; }
+            modalOverlay.classList.add('active');
+        });
+        closeModalBtn.addEventListener('click', () => modalOverlay.classList.remove('active'));
+        closeAuthModalBtn.addEventListener('click', () => authModalOverlay.classList.remove('active'));
+        
+        openExploreBtn.addEventListener('click', () => { exploreModalOverlay.classList.add('active'); });
+        document.getElementById('closeExploreModalBtn').addEventListener('click', () => { exploreModalOverlay.classList.remove('active'); searchNickInput.value=''; searchResultsContainer.innerHTML=''; });
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            if (type === 'warning') toast.classList.add('warning');
+            const icon = type === 'success' ? '✅' : '⚠️';
+            
+            let toastHTML = `<button class="toast-close-btn" onclick="closeToast(this.closest('.toast'))">&times;</button><div class="toast-header"><span>${icon}</span><span>${message}</span></div>`;
+            const isMusicUploadSuccess = type === 'success' && message.includes("추가되었습니다");
+            
+            if (isMusicUploadSuccess) {
+                toastHTML += `<button class="toast-action-btn" onclick="handleToastAction(this)">내 음악 보러가기 →</button>`;
+            }
+            
+            toast.innerHTML = toastHTML; toastContainer.appendChild(toast);
+            if (!isMusicUploadSuccess) { setTimeout(() => { closeToast(toast); }, 2000); }
+        }
+        function handleToastAction(btn) { closeToast(btn.closest('.toast')); showListPage(); }
+        function closeToast(toast) { if (toast && !toast.classList.contains('hide')) { toast.classList.add('hide'); toast.addEventListener('animationend', () => { toast.remove(); }); } }
+        function escapeHtml(text) { return text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : ''; }
+    </script>
+</body>
+</html>

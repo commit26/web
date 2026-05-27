@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아두이노 원격 제어 & 실시간 모니터링 대시보드</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for real-time graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for friendly icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .brand-font {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Clean Card Design with Soft Shadows */
+        .premium-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .premium-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+            transform: translateY(-2px);
+        }
+
+        /* LED Glowing Effects */
+        .led-glow {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+            background-color: #fef3c7 !important;
+            border-color: #f59e0b !important;
+        }
+
+        /* Custom Transition for Fan Speed */
+        #virtual-fan {
+            transform-origin: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-500 text-white p-2 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/10">
+                    <i class="fa-solid fa-house-laptop text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold text-slate-800 tracking-tight flex items-center">
+                        스마트 아두이노 홈 대시보드
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-medium">전기전자공학 원격 제어 포트폴리오</p>
+                </div>
+            </div>
+            
+            <!-- Connection Status Badge -->
+            <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" id="status-dot"></span>
+                </span>
+                <span class="text-xs text-slate-600 font-bold" id="mcu-status">가상 작동 모드</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Introductory Banner for Beginners -->
+    <div class="max-w-6xl w-full mx-auto px-4 pt-6">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 flex items-start space-x-4">
+            <div class="text-blue-500 mt-1">
+                <i class="fa-solid fa-circle-question text-2xl"></i>
+            </div>
+            <div class="space-y-1">
+                <h2 class="text-sm font-bold text-slate-800">이 웹사이트는 어떤 도구인가요?</h2>
+                <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    인터넷 화면을 통해 방 안의 전등을 켜고 선풍기 바람 세기를 조절하는 기술인 <strong>IoT(사물인터넷) 시스템</strong>을 구현한 페이지입니다. 
+                    하드웨어 연결 없이 버튼을 눌러보며 즉시 체험해보거나, 실제 아두이노 보드를 컴퓨터에 꽂아 직접 연동할 수도 있습니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+
+        <!-- ================= LEFT COLUMN: EASY CONTROLS ================= -->
+        <div class="md:col-span-5 flex flex-col gap-6">
+            
+            <!-- Connection Card -->
+            <div class="premium-card p-5">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <i class="fa-solid fa-link text-blue-500"></i> 기기 연결하기
+                </h3>
+                
+                <div class="space-y-3">
+                    <button onclick="requestSerialPort()" id="serial-conn-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/10 transition duration-200 flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-brands fa-usb text-sm"></i>
+                        <span>실제 아두이노 보드와 컴퓨터 연결</span>
+                    </button>
+                    
+                    <div class="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-500 leading-relaxed">
+                        <i class="fa-solid fa-info-circle text-blue-400 mr-1"></i>
+                        컴퓨터에 아두이노를 연결한 후 위 파란 버튼을 클릭하면 실시간 실제 부품 제어가 가능합니다. (보드가 없을 때는 가상 시뮬레이터로 자동 연동됩니다)
+                    </div>
+
+                    <!-- Simulator On/Off Switch -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <span class="text-slate-500 font-medium">가상 센서 시뮬레이터</span>
+                        <button onclick="toggleSimulation()" id="sim-toggle-btn" class="text-emerald-600 font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-circle-play"></i> 작동 중
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Controls Card -->
+            <div class="premium-card p-5 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-toggle-on text-blue-500"></i> 스마트 제어 스위치
+                    </h3>
+                    
+                    <div class="space-y-5">
+                        <!-- LED Controller -->
+                        <div class="flex items-center justify-between p-4 bg-slate-50/70 rounded-xl border border-slate-100">
+                            <div class="flex items-center space-x-3.5">
+                                <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500" id="led-icon-bg">
+                                    <i class="fa-solid fa-lightbulb text-lg" id="led-bulb"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-800">LED 조명 스위치</h4>
+                                    <p class="text-[10px] text-slate-400" id="led-status-text">꺼져 있음</p>
+                                </div>
+                            </div>
+                            <!-- Simple Switch UI -->
+                            <button onclick="toggleLED()" id="led-toggle" class="w-12 h-6 rounded-full bg-slate-300 flex items-center p-0.5 transition duration-200 focus:outline-none">
+                                <div class="w-5 h-5 rounded-full bg-white shadow transition duration-200 transform translate-x-0" id="led-toggle-circle"></div>
+                            </button>
+                        </div>
+
+                        <!-- Motor Speed Controller -->
+                        <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3.5">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500" id="fan-icon-bg">
+                                        <i class="fa-solid fa-fan text-lg" id="fan-icon"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-800">선풍기 바람 세기 조절</h4>
+                                        <p class="text-[10px] text-slate-400">모터 전력량 제어</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-blue-600 font-mono" id="motor-val">0%</span>
+                            </div>
+                            <input type="range" id="motor-slider" min="0" max="100" value="0" oninput="setMotorSpeed(this.value)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simpler Console Output inside control panel -->
+                <div class="mt-6 pt-4 border-t border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">통신 신호 로그 (보낸 신호/받은 신호)</span>
+                    <div id="simple-terminal" class="bg-slate-900 rounded-xl p-3 text-[10px] text-emerald-400 font-mono h-28 overflow-y-auto space-y-1">
+                        <div class="text-slate-500">// 대시보드가 준비되었습니다.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= RIGHT COLUMN: INTERACTIVE VISUALS & METERS ================= -->
+        <div class="md:col-span-7 flex flex-col gap-6">
+            
+            <!-- Real-time Meter Grid -->
+            <div class="grid grid-cols-3 gap-4">
+                <!-- Voltage Card -->
+                <div class="premium-card p-4 flex flex-col justify-between">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">전압 (Voltage)</span>
+                    <div class="mt-2 flex items-baseline">
+                        <span class="text-2xl font-bold font-mono tracking-tight text-amber-500" id="meter-voltage">5.00</span>
+                        <span class="text-[10px] text-slate-500 ml-1 font-bold">V</span>
+                    </div>
+                    <span class="text-[9px] text-slate-400 mt-1">보드의 전압 안정성</span>
+                </div>
+
+                <!-- Current Card -->
+                <div class="premium-card p-4 flex flex-col justify-between">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">전류 (Current)</span>
+                    <div class="mt-2 flex items-baseline">
+                        <span class="text-2xl font-bold font-mono tracking-tight text-rose-500" id="meter-current">120</span>
+                        <span class="text-[10px] text-slate-500 ml-1 font-bold">mA</span>
+                    </div>
+                    <span class="text-[9px] text-slate-400 mt-1">소비 중인 전기량</span>
+                </div>
+
+                <!-- Temp Card -->
+                <div class="premium-card p-4 flex flex-col justify-between">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">온도 (Temp)</span>
+                    <div class="mt-2 flex items-baseline">
+                        <span class="text-2xl font-bold font-mono tracking-tight text-emerald-500" id="meter-temp">24.5</span>
+                        <span class="text-[10px] text-slate-500 ml-1 font-bold">°C</span>
+                    </div>
+                    <span class="text-[9px] text-slate-400 mt-1">기판 주변 온도</span>
+                </div>
+            </div>
+
+            <!-- Virtual Smart Room Render (가상 홈 렌더링 일러스트) -->
+            <div class="premium-card p-5">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shapes text-blue-500"></i> 가상 스마트룸 모형
+                </h3>
+                
+                <!-- Light Theme Home Device Simulator Graphic -->
+                <div class="w-full bg-slate-50 rounded-2xl border border-slate-200/60 p-6 flex items-center justify-around gap-6 min-h-[160px] relative">
+                    <!-- LED Lamp Unit -->
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-20 h-20 rounded-full bg-white border border-slate-200 flex items-center justify-center transition-all duration-300" id="pcb-d13-led-container">
+                            <i class="fa-regular fa-lightbulb text-4xl text-slate-300 transition duration-300" id="pcb-d13-led"></i>
+                        </div>
+                        <span class="text-[11px] text-slate-600 font-bold">방 전등 (LED)</span>
+                    </div>
+
+                    <!-- Middle Divider wire line -->
+                    <div class="h-12 w-0.5 bg-slate-200"></div>
+
+                    <!-- Fan Fan Unit -->
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-20 h-20 rounded-full bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+                            <!-- Vector SVG Fan for clean rotaton -->
+                            <svg id="virtual-fan" class="w-14 h-14 text-slate-300 transition-all duration-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+                                <path d="M12 2C12 2 15 5 15 8C15 11 12 11 12 11" stroke-linecap="round"></path>
+                                <path d="M12 22C12 22 9 19 9 16C9 13 12 13 12 13" stroke-linecap="round"></path>
+                                <path d="M2 12C2 12 5 15 8 15C11 15 11 12 11 12" stroke-linecap="round"></path>
+                                <path d="M22 12C22 12 19 9 16 9C13 9 13 12 13 12" stroke-linecap="round"></path>
+                            </svg>
+                        </div>
+                        <span class="text-[11px] text-slate-600 font-bold">미니 선풍기</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waveform Real-time Graph -->
+            <div class="premium-card p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-blue-500"></i> 실시간 센서값 그래프
+                        </h3>
+                        <p class="text-[10px] text-slate-500">아두이노 전압과 전류가 가동 상태에 따라 부드럽게 변화하는 모습입니다.</p>
+                    </div>
+                </div>
+                <!-- Light styled Canvas Chart -->
+                <div class="relative h-[220px]">
+                    <canvas id="realtimeSensorChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+        <div class="max-w-6xl mx-auto px-4">
+            <p>© 2026 Smart Arduino Home Web IoT Dashboard. Designed for High School Engineering Portfolio.</p>
+        </div>
+    </footer>
+
+    <!-- Software Logic Scripts -->
+    <script>
+        let sensorChart = null;
+        let isSimulating = true;
+        let ledState = false;
+        let motorSpeed = 0; // 0 - 100%
+        let simulationInterval = null;
+
+        // Web Serial API handles
+        let serialPort = null;
+        let serialReader = null;
+        let serialWriter = null;
+        let keepReading = false;
+
+        // Graphic Arrays
+        const timeLabels = [];
+        const voltageData = [];
+        const currentData = [];
+
+        // Base Simulator levels
+        let baseVoltage = 5.0;
+        let baseCurrent = 120.0;
+        let baseTemp = 24.5;
+
+        window.onload = function() {
+            initChart();
+            startSensorSimulation();
+            addTerminalLog("System", "대시보드가 정상 기동되었습니다.");
+            addTerminalLog("System", "가상 작동모드로 동작 중입니다.");
+        }
+
+        // Initialize Light Theme Chart
+        function initChart() {
+            const ctx = document.getElementById('realtimeSensorChart').getContext('2d');
+            
+            for (let i = 24; i >= 0; i--) {
+                timeLabels.push(`${i}초 전`);
+                voltageData.push(5.0);
+                currentData.push(120);
+            }
+
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: '전압 (V)',
+                            yAxisID: 'y-voltage',
+                            data: voltageData,
+                            borderColor: '#f59e0b', // Clean Amber
+                            backgroundColor: 'rgba(245, 158, 11, 0.02)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '전류 (mA)',
+                            yAxisID: 'y-current',
+                            data: currentData,
+                            borderColor: '#f43f5e', // Warm Rose
+                            backgroundColor: 'rgba(244, 63, 94, 0.02)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 0, 0, 0.03)' },
+                            ticks: { color: '#94a3b8', font: { size: 9 } }
+                        },
+                        'y-voltage': {
+                            type: 'linear',
+                            position: 'left',
+                            suggestedMin: 3.5,
+                            suggestedMax: 5.5,
+                            grid: { color: 'rgba(0, 0, 0, 0.03)' },
+                            ticks: { color: '#d97706', font: { size: 9 } }
+                        },
+                        'y-current': {
+                            type: 'linear',
+                            position: 'right',
+                            suggestedMin: 50,
+                            suggestedMax: 260,
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#e11d48', font: { size: 9 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#64748b', boxWidth: 10, font: { size: 10 } }
+                        }
+                    },
+                    animation: {
+                        duration: 100
+                    }
+                }
+            });
+        }
+
+        // Sensor Simulation Loop
+        function startSensorSimulation() {
+            if (simulationInterval) clearInterval(simulationInterval);
+            
+            simulationInterval = setInterval(() => {
+                if (!isSimulating) return;
+
+                // Adjust current consumption based on user control
+                let motorLoad = (motorSpeed / 100.0) * 100.0; // max 100mA added
+                let ledLoad = ledState ? 20.0 : 0.0;
+                let targetCurrent = baseCurrent + motorLoad + ledLoad + (Math.random() * 4 - 2);
+
+                // Tiny voltage drop depending on load size
+                let loadVoltageDrop = (targetCurrent / 250.0) * 0.1;
+                let targetVoltage = baseVoltage - loadVoltageDrop + (Math.random() * 0.02 - 0.01);
+
+                // Soft temperature fluctuation
+                let tempFluct = (targetCurrent / 200.0) * 1.5;
+                let targetTemp = baseTemp + tempFluct + (Math.random() * 0.1 - 0.05);
+
+                updateMetricsUI(targetVoltage, targetCurrent, targetTemp);
+                updateChartData(targetVoltage, targetCurrent);
+
+            }, 800);
+        }
+
+        function updateMetricsUI(v, c, t) {
+            document.getElementById('meter-voltage').innerText = v.toFixed(2);
+            document.getElementById('meter-current').innerText = Math.round(c);
+            document.getElementById('meter-temp').innerText = t.toFixed(1);
+        }
+
+        function updateChartData(v, c) {
+            voltageData.push(v);
+            voltageData.shift();
+            currentData.push(c);
+            currentData.shift();
+            sensorChart.update();
+        }
+
+        // Toggle Simulation Status
+        function toggleSimulation() {
+            isSimulating = !isSimulating;
+            const btn = document.getElementById('sim-toggle-btn');
+            const dot = document.getElementById('status-dot');
+            const statusLabel = document.getElementById('mcu-status');
+
+            if (isSimulating) {
+                btn.innerHTML = `<i class="fa-solid fa-circle-play"></i> 작동 중`;
+                btn.className = "text-emerald-600 font-bold flex items-center gap-1";
+                if (!serialPort) {
+                    dot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
+                    statusLabel.innerText = "가상 작동 모드";
+                }
+                addTerminalLog("System", "가상 센서 시뮬레이션이 다시 켜졌습니다.");
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-circle-pause"></i> 정지됨`;
+                btn.className = "text-slate-400 font-bold flex items-center gap-1";
+                if (!serialPort) {
+                    dot.className = "relative inline-flex rounded-full h-2 w-2 bg-slate-400";
+                    statusLabel.innerText = "시뮬레이션 정지";
+                }
+                addTerminalLog("System", "가상 센서 시뮬레이션이 정지되었습니다.");
+            }
+        }
+
+        // Toggle Smart LED
+        function toggleLED() {
+            ledState = !ledState;
+            
+            const ledToggle = document.getElementById('led-toggle');
+            const toggleCircle = document.getElementById('led-toggle-circle');
+            const ledStatusText = document.getElementById('led-status-text');
+            const ledIconBg = document.getElementById('led-icon-bg');
+            const ledBulb = document.getElementById('led-bulb');
+            
+            // PCB Room LED
+            const roomLedContainer = document.getElementById('pcb-d13-led-container');
+            const roomLed = document.getElementById('pcb-d13-led');
+
+            if (ledState) {
+                ledToggle.className = "w-12 h-6 rounded-full bg-blue-600 flex items-center p-0.5 transition duration-200 focus:outline-none";
+                toggleCircle.className = "w-5 h-5 rounded-full bg-white shadow transition duration-200 transform translate-x-6";
+                ledStatusText.innerText = "불빛 켜짐";
+                ledIconBg.className = "w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-500 transition-colors";
+                ledBulb.className = "fa-solid fa-lightbulb text-lg";
+
+                // Physical Room Lamp Active
+                roomLedContainer.classList.add('led-glow');
+                roomLed.className = "fa-solid fa-lightbulb text-4xl text-amber-500 transition duration-300";
+
+                sendCommandToMCU("CMD:LED_ON");
+            } else {
+                ledToggle.className = "w-12 h-6 rounded-full bg-slate-300 flex items-center p-0.5 transition duration-200 focus:outline-none";
+                toggleCircle.className = "w-5 h-5 rounded-full bg-white shadow transition duration-200 transform translate-x-0";
+                ledStatusText.innerText = "꺼져 있음";
+                ledIconBg.className = "w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 transition-colors";
+                ledBulb.className = "fa-regular fa-lightbulb text-lg";
+
+                // Physical Room Lamp Turn Off
+                roomLedContainer.classList.remove('led-glow');
+                roomLed.className = "fa-regular fa-lightbulb text-4xl text-slate-300 transition duration-300";
+
+                sendCommandToMCU("CMD:LED_OFF");
+            }
+        }
+
+        // Set Fan Speed (0 - 100%)
+        function setMotorSpeed(val) {
+            motorSpeed = parseInt(val);
+            document.getElementById('motor-val').innerText = `${motorSpeed}%`;
+
+            const fanIcon = document.getElementById('fan-icon');
+            const fanIconBg = document.getElementById('fan-icon-bg');
+            
+            const virtualFan = document.getElementById('virtual-fan');
+
+            if (motorSpeed === 0) {
+                fanIcon.className = "fa-solid fa-fan text-lg";
+                fanIcon.style.animation = 'none';
+                fanIconBg.className = "w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 transition-colors";
+
+                virtualFan.style.animation = 'none';
+                virtualFan.setAttribute('stroke', '#cbd5e1'); // light slate color
+            } else {
+                fanIconBg.className = "w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-white transition-colors";
+                
+                // Spin Speed depending on Value
+                let duration = 3.0 - (motorSpeed / 100.0) * 2.85; // ranges from 3s to 0.15s
+                fanIcon.style.animation = `spin ${duration}s infinite linear`;
+                
+                virtualFan.style.animation = `spin ${duration}s infinite linear`;
+                virtualFan.setAttribute('stroke', '#3b82f6'); // blue color
+            }
+
+            // Simple logging to terminal
+            if (motorSpeed % 10 === 0 || motorSpeed === 0 || motorSpeed === 100) {
+                sendCommandToMCU(`CMD:FAN=${motorSpeed}%`);
+            }
+        }
+
+        // Output log generator
+        function addTerminalLog(source, text) {
+            const terminal = document.getElementById('simple-terminal');
+            const logEntry = document.createElement('div');
+            
+            let sourceColor = "text-emerald-400";
+            if (source === "System") sourceColor = "text-slate-400";
+            if (source === "대시보드") sourceColor = "text-blue-400 font-bold";
+
+            logEntry.innerHTML = `<span class="text-slate-600 font-mono">[${new Date().toLocaleTimeString('en-US', {hour12: false})}]</span> <span class="${sourceColor}">${source}:</span> <span class="text-white">${text}</span>`;
+            
+            terminal.appendChild(logEntry);
+            terminal.scrollTop = terminal.scrollHeight; // Autoscroll
+        }
+
+        function clearTerminal() {
+            document.getElementById('simple-terminal').innerHTML = '<div class="text-slate-500">// 통신 기록 창이 비워졌습니다.</div>';
+        }
+
+        // Unified command sender (either to serial or simulator)
+        function sendCommandToMCU(cmd) {
+            addTerminalLog("대시보드", `보냄 ➔ [${cmd}]`);
+
+            if (serialPort && serialWriter) {
+                try {
+                    serialWriter.write(cmd + "\n");
+                } catch (err) {
+                    addTerminalLog("System", "신호 전송에 실패했습니다: " + err.message);
+                }
+            } else {
+                // Mock micro-response on simulator mode
+                setTimeout(() => {
+                    addTerminalLog("가상 기기", `수신 완료 ➔ [명령 수행 완료]`);
+                }, 150);
+            }
+        }
+
+
+        // ==========================================
+        // WEB SERIAL PORT SYSTEM FOR ACTUAL ARDUINO
+        // ==========================================
+        async function requestSerialPort() {
+            if (!("serial" in navigator)) {
+                alert("이 브라우저는 USB 연결을 지원하지 않습니다. 구글 크롬 또는 마이크로소프트 엣지 브라우저를 사용해 주세요.");
+                return;
+            }
+
+            try {
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 115200 });
+                
+                // Deactivate internal simulation to let real device stream
+                isSimulating = false;
+                if (simulationInterval) clearInterval(simulationInterval);
+                
+                document.getElementById('sim-toggle-btn').innerHTML = `<i class="fa-solid fa-circle-pause"></i> 정지됨`;
+                document.getElementById('sim-toggle-btn').className = "text-slate-400 font-bold cursor-not-allowed";
+
+                // Streams pipelines
+                const textDecoder = new TextDecoderStream();
+                const textEncoder = new TextEncoderStream();
+                
+                serialPort.readable.pipeTo(textDecoder.writable);
+                serialPort.writable.pipeTo(textEncoder.writable);
+                
+                serialReader = textDecoder.readable.getReader();
+                serialWriter = textEncoder.writable.getWriter();
+
+                // Status UI Update
+                const dot = document.getElementById('status-dot');
+                const statusLabel = document.getElementById('mcu-status');
+                const connBtn = document.getElementById('serial-conn-btn');
+
+                dot.className = "relative inline-flex rounded-full h-2 w-2 bg-blue-500";
+                statusLabel.innerText = "실제 보드 연결됨";
+                
+                connBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 text-xs";
+                connBtn.innerHTML = `<i class="fa-solid fa-circle-nodes"></i> 아두이노 보드와 안전하게 연동 중`;
+
+                addTerminalLog("System", "실제 아두이노 직렬 포트에 무선 연동되었습니다. 수신 수집을 개시합니다.");
+                
+                keepReading = true;
+                readSerialStream();
+
+            } catch (err) {
+                console.error(err);
+                addTerminalLog("System", "보드 연결 실패: " + err.message);
+                
+                // Fallback to simulator
+                isSimulating = true;
+                startSensorSimulation();
+            }
+        }
+
+        async function readSerialStream() {
+            let buffer = "";
+            while (keepReading && serialPort && serialPort.readable) {
+                try {
+                    const { value, done } = await serialReader.read();
+                    if (done) {
+                        serialReader.releaseLock();
+                        break;
+                    }
+                    
+                    buffer += value;
+                    let lines = buffer.split("\n");
+                    buffer = lines.pop(); // save leftovers
+
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (line.startsWith("DATA:")) {
+                            // Protocol layout -> DATA:voltage,current,temp
+                            let payload = line.substring(5).split(",");
+                            if (payload.length >= 3) {
+                                let v = parseFloat(payload[0]);
+                                let c = parseFloat(payload[1]);
+                                let t = parseFloat(payload[2]);
+
+                                if (!isNaN(v) && !isNaN(c) && !isNaN(t)) {
+                                    updateMetricsUI(v, c, t);
+                                    updateChartData(v, c);
+                                    addTerminalLog("실제 보드", `보내옴 ➔ 전압:${v}V, 전류:${c}mA, 온도:${t}°C`);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    addTerminalLog("System", "USB 장치의 통신 수신을 도중에 손실했습니다.");
+                    disconnectSerial();
+                    break;
+                }
+            }
+        }
+
+        async function disconnectSerial() {
+            keepReading = false;
+            if (serialReader) {
+                await serialReader.cancel();
+                serialReader.releaseLock();
+            }
+            if (serialWriter) {
+                serialWriter.releaseLock();
+            }
+            if (serialPort) {
+                await serialPort.close();
+            }
+            serialPort = null;
+            
+            const dot = document.getElementById('status-dot');
+            const statusLabel = document.getElementById('mcu-status');
+            const connBtn = document.getElementById('serial-conn-btn');
+
+            dot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
+            statusLabel.innerText = "가상 작동 모드";
+            
+            connBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 text-xs";
+            connBtn.innerHTML = `<i class="fa-brands fa-usb text-sm"></i> <span>실제 아두이노 보드와 컴퓨터 연결</span>`;
+
+            addTerminalLog("System", "가상 작동(시뮬레이터) 모드로 즉각 복귀했습니다.");
+            isSimulating = true;
+            toggleSimulation();
+            startSensorSimulation();
+        }
+    </script>
+    <style>
+        /* Custom Keyframes for interactive spins */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>

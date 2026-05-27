@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>날씨별 감성 노래 추천 알리미 🎵</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .font-pacifico {
+            font-family: 'Pacifico', cursive;
+        }
+        /* 음악 파형 이펙트 */
+        @keyframes bounce-bar {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+        .bar-1 { animation: bounce-bar 0.8s ease-in-out infinite; }
+        .bar-2 { animation: bounce-bar 0.5s ease-in-out infinite 0.1s; }
+        .bar-3 { animation: bounce-bar 0.7s ease-in-out infinite 0.2s; }
+        .bar-4 { animation: bounce-bar 0.6s ease-in-out infinite 0.3s; }
+        .bar-5 { animation: bounce-bar 0.9s ease-in-out infinite 0.15s; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-100 text-slate-800 min-h-screen flex flex-col transition-colors duration-700">
+
+    <!-- 상단 헤더 & 네비게이션 -->
+    <header class="w-full bg-white/60 backdrop-blur-md border-b border-yellow-200/50 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- 필수 홈 링크 버튼 -->
+            <a href="index.html" class="inline-flex items-center text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-950 transition bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-full border border-yellow-200">
+                <i class="fa-solid fa-house mr-1.5"></i> 홈으로 돌아가기
+            </a>
+            
+            <div class="flex items-center gap-2">
+                <span class="text-amber-600 font-pacifico text-xl sm:text-2xl">YellowMelody</span>
+                <i class="fa-solid fa-music text-amber-500 text-lg sm:text-xl"></i>
+            </div>
+            
+            <div id="connection-status" class="text-xs font-semibold text-amber-700 bg-yellow-100/50 px-3 py-1.5 rounded-full border border-yellow-200/30">
+                감성 명곡 큐레이션 활성화 🎵
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 레이아웃 -->
+    <main class="flex-grow max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 space-y-10">
+        
+        <!-- 서비스 메인 인트로 -->
+        <section class="text-center space-y-4">
+            <span class="inline-block px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-md shadow-yellow-200">WEATHER & MUSIC</span>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                오늘의 <span class="text-amber-600">날씨</span>는 어떤가요?
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 max-w-lg mx-auto leading-relaxed">
+                현재 창밖 날씨에 맞는 최적의 플레이리스트를 선택해 보세요. <br class="hidden sm:inline">
+                노래를 클릭하면 <strong>곡에 얽힌 아늑한 감성 코멘트와 베스트 한 줄 노랫말</strong>이 하단 보드에 온전히 펼쳐집니다.
+            </p>
+        </section>
+
+        <!-- 날씨 선택 컨트롤 패널 -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="weather-selectors">
+            <!-- 맑음 -->
+            <button onclick="changeWeather('sunny')" id="btn-sunny" class="weather-btn group bg-white p-5 rounded-3xl border-2 border-yellow-200 hover:border-yellow-400 shadow-md shadow-yellow-100/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center">
+                <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">☀️</div>
+                <span class="font-bold text-slate-800 text-sm">맑은 날</span>
+                <span class="text-[10px] text-amber-600 font-medium mt-1">청량하고 따스한</span>
+            </button>
+
+            <!-- 비 -->
+            <button onclick="changeWeather('rainy')" id="btn-rainy" class="weather-btn group bg-white p-5 rounded-3xl border-2 border-transparent shadow-md shadow-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center">
+                <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">🌧️</div>
+                <span class="font-bold text-slate-800 text-sm">비오는 날</span>
+                <span class="text-[10px] text-amber-600 font-medium mt-1">차분하고 깊은</span>
+            </button>
+
+            <!-- 눈 -->
+            <button onclick="changeWeather('snowy')" id="btn-snowy" class="weather-btn group bg-white p-5 rounded-3xl border-2 border-transparent shadow-md shadow-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center">
+                <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">❄️</div>
+                <span class="font-bold text-slate-800 text-sm">눈오는 날</span>
+                <span class="text-[10px] text-amber-600 font-medium mt-1">로맨틱하고 포근한</span>
+            </button>
+
+            <!-- 흐림 -->
+            <button onclick="changeWeather('cloudy')" id="btn-cloudy" class="weather-btn group bg-white p-5 rounded-3xl border-2 border-transparent shadow-md shadow-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center">
+                <div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform">☁️</div>
+                <span class="font-bold text-slate-800 text-sm">흐린 날</span>
+                <span class="text-[10px] text-amber-600 font-medium mt-1">몽글몽글 아날로그</span>
+            </button>
+        </section>
+
+        <!-- 동적 정보 세션 및 플레이리스트 -->
+        <section class="bg-white/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-yellow-100 shadow-xl shadow-yellow-100/40 space-y-6">
+            
+            <!-- 헤더 매칭 현황 정보 -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-yellow-100 pb-5 gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl" id="current-weather-emoji">☀️</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900" id="current-weather-title">맑은 날의 옐로우 멜로디</h2>
+                        <p class="text-xs text-slate-500 mt-0.5" id="current-weather-desc">오늘처럼 화창한 날, 발걸음을 가볍게 만들어 줄 플레이리스트입니다.</p>
+                    </div>
+                </div>
+                <div class="bg-amber-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-full shadow-sm shadow-yellow-200">
+                    추천곡 <span id="song-count">4</span>곡 리스트
+                </div>
+            </div>
+
+            <!-- 플레이리스트 그리드 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="playlist-container">
+                <!-- 동적으로 곡 카드가 채워집니다 -->
+            </div>
+        </section>
+
+        <!-- 하단 미니 가상 플레이어 & 큐레이션 디스플레이 (고품질 시각 연출) -->
+        <section class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6">
+            
+            <!-- 플레이어 메인 컨트롤 (레코드 판 제거) -->
+            <div class="flex flex-col md:flex-row items-center gap-6 pb-6 border-b border-slate-800">
+                <!-- 플레이어 정보 및 컨트롤러 -->
+                <div class="flex-grow text-center md:text-left space-y-4 w-full">
+                    <div class="space-y-1">
+                        <span class="text-amber-400 text-xs font-bold tracking-widest uppercase">NOW SELECTED</span>
+                        <h3 id="player-title" class="text-lg sm:text-xl font-extrabold truncate text-yellow-100">곡 선택 대기 중</h3>
+                        <p id="player-artist" class="text-xs sm:text-sm text-slate-400 truncate">날씨를 선택해 음악을 감상해 보세요!</p>
+                    </div>
+
+                    <!-- 오디오 파형 (선택 시 흔들림) -->
+                    <div class="flex justify-center md:justify-start items-end gap-1 h-8" id="visualizer">
+                        <div class="w-1 bg-amber-500 rounded-full bar-1 h-full origin-bottom"></div>
+                        <div class="w-1 bg-yellow-400 rounded-full bar-2 h-4 origin-bottom"></div>
+                        <div class="w-1 bg-amber-500 rounded-full bar-3 h-6 origin-bottom"></div>
+                        <div class="w-1 bg-yellow-300 rounded-full bar-4 h-5 origin-bottom"></div>
+                        <div class="w-1 bg-yellow-400 rounded-full bar-5 h-3 origin-bottom"></div>
+                    </div>
+
+                    <!-- 재생 제어 버튼 인터페이스 -->
+                    <div class="flex items-center justify-center md:justify-start gap-4">
+                        <button onclick="prevSong()" class="w-10 h-10 rounded-full border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-500 transition flex items-center justify-center" title="이전 곡"><i class="fa-solid fa-backward"></i></button>
+                        <button onclick="togglePlay()" id="play-pause-btn" class="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 transition flex items-center justify-center" title="시각 애니메이션 일시정지"><i class="fa-solid fa-pause text-lg"></i></button>
+                        <button onclick="nextSong()" class="w-10 h-10 rounded-full border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-500 transition flex items-center justify-center" title="다음 곡"><i class="fa-solid fa-forward"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 곡 정보 상세 가사 & 추천 감상평 패널 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 text-left">
+                <!-- 감성 큐레이터 한마디 -->
+                <div class="bg-slate-950/50 rounded-2xl p-5 border border-slate-800 space-y-2.5">
+                    <div class="flex items-center gap-2 text-amber-400 text-xs font-bold tracking-wider">
+                        <i class="fa-solid fa-feather-pointed"></i> <span>CURATOR'S NOTE</span>
+                    </div>
+                    <p id="curator-text" class="text-xs sm:text-sm text-slate-300 leading-relaxed font-light">
+                        노래를 선택하시면 큐레이터의 따뜻한 곡 추천 메시지가 여기에 가시화됩니다.
+                    </p>
+                </div>
+
+                <!-- 베스트 명가사 카드 -->
+                <div class="bg-gradient-to-br from-yellow-500/5 to-amber-500/10 rounded-2xl p-5 border border-amber-500/20 space-y-2.5 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-yellow-400 text-xs font-bold tracking-wider">
+                            <i class="fa-solid fa-quote-left"></i> <span>BEST LYRICS</span>
+                        </div>
+                        <p id="lyrics-text" class="text-sm sm:text-base font-bold text-yellow-100 italic leading-relaxed">
+                            "음악을 들으며 노랫말에 귀를 기울여 보세요."
+                        </p>
+                    </div>
+                    <div class="flex justify-end text-[10px] text-amber-500/80 font-semibold" id="lyrics-source">
+                        - YellowMelody 감성 발췌
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 감성 기분맞춤: 영수증 티켓 프린터 (완벽 작동 기믹) -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <!-- 입력창 영역 -->
+            <div class="lg:col-span-2 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-3xl p-6 sm:p-8 border border-yellow-200/50 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-amber-500 animate-bounce">🤖</div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-lg">나만의 감성 멜로디 티켓 만들기</h3>
+                        <p class="text-xs text-slate-600">오늘의 기분이나 걷고 있는 곳을 입력해 주시면 즉석에서 감성 연동 티켓을 인쇄해 드립니다.</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                    <input type="text" id="ai-request-input" placeholder="예: 구름 낀 숲길을 걸으며 사색하고 싶어" class="flex-grow px-4 py-3 rounded-2xl border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm bg-white/90">
+                    <button onclick="printCustomTicket()" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold px-6 py-3 rounded-2xl transition text-sm flex-shrink-0 shadow-md shadow-amber-200 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> 티켓 인쇄하기
+                    </button>
+                </div>
+                
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    <span class="text-[10px] font-semibold bg-white/60 text-amber-800 px-2 py-1 rounded-md cursor-pointer hover:bg-white" onclick="quickFill('화창한 아침 자전거 타며 듣는 산뜻함')">#아침 자전거 🚴</span>
+                    <span class="text-[10px] font-semibold bg-white/60 text-amber-800 px-2 py-1 rounded-md cursor-pointer hover:bg-white" onclick="quickFill('비오는 창가 조용히 집중할 때 좋은 분위기')">#비오는 창가 ☕</span>
+                    <span class="text-[10px] font-semibold bg-white/60 text-amber-800 px-2 py-1 rounded-md cursor-pointer hover:bg-white" onclick="quickFill('쓸쓸하고 위로가 필요한 퇴근길')">#위로와 한숨 🌆</span>
+                </div>
+            </div>
+
+            <!-- 영수증 티켓 출력 프레임 -->
+            <div class="bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-lg relative overflow-hidden font-mono text-xs text-slate-800 space-y-4" id="ticket-frame">
+                <!-- 영수증 절취선 상단 데코 -->
+                <div class="absolute top-0 left-0 right-0 h-1.5 bg-repeat-x" style="background-image: linear-gradient(135deg, #cbd5e1 25%, transparent 25%), linear-gradient(225deg, #cbd5e1 25%, transparent 25%); background-size: 8px 8px;"></div>
+                
+                <div class="text-center space-y-1 pt-2">
+                    <p class="font-bold text-sm tracking-widest text-slate-900">YELLOW MELODY TICKET</p>
+                    <p class="text-[10px] text-slate-400" id="ticket-date">2026.05.27 14:29</p>
+                </div>
+
+                <div class="border-t border-dashed border-slate-300 py-3 space-y-1" id="ticket-detail">
+                    <div class="flex justify-between font-bold">
+                        <span>ITEM</span>
+                        <span>CURE VALUE</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>WEATHER MOOD</span>
+                        <span id="ticket-weather">SUNNY</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>MY EMOTION</span>
+                        <span id="ticket-emotion" class="truncate max-w-[120px]">맑은 날의 설렘</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-dashed border-slate-300 py-3 text-center space-y-2">
+                    <p class="text-[10px] text-amber-600 font-bold uppercase">🎵 RECOMMENDED TRACK</p>
+                    <p id="ticket-title" class="font-black text-sm text-slate-950">라일락</p>
+                    <p id="ticket-artist" class="text-slate-500">아이유 (IU)</p>
+                    <div class="bg-yellow-50 p-2.5 rounded-xl border border-yellow-200 inline-block w-full">
+                        <p id="ticket-lyric" class="text-[10px] text-amber-900 italic font-sans leading-relaxed">"꽃가루를 날려 외치고 싶어 우리의 봄날처럼"</p>
+                    </div>
+                </div>
+
+                <!-- 바코드 연출 -->
+                <div class="border-t border-dashed border-slate-300 pt-3 text-center space-y-1.5">
+                    <div class="w-full h-8 bg-slate-900 flex justify-between px-2 items-center text-[10px] text-slate-900 font-sans tracking-[3px] select-none" style="background: repeating-linear-gradient(90deg, #1e293b, #1e293b 2px, #fff 2px, #fff 5px);">BARCODE</div>
+                    <p class="text-[8px] text-slate-400">NO. 2026-0527-YELLOW-MUSIC</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-white/40 border-t border-yellow-200/40 py-6 mt-12">
+        <div class="max-w-5xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+            <p>🎵 날씨별 옐로우 명곡 큐레이터 - 이 웹 사이트는 인공지능 Gemini Canvas의 도움을 받아 제작되었습니다.</p>
+            <p>© 2026 YellowMelody Co. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- 자바스크립트 비즈니스 로직 -->
+    <script>
+        // 날씨별 추천 플레이리스트 고정 데이터베이스 (가사 및 큐레이션 스토리 완벽 탑재)
+        const weatherDatabase = {
+            sunny: {
+                title: "맑은 날의 옐로우 멜로디",
+                desc: "오늘처럼 화창한 날, 발걸음을 청량하게 만들어 줄 플레이리스트입니다.",
+                emoji: "☀️",
+                bgGradient: "from-yellow-50 via-amber-100 to-yellow-100",
+                songs: [
+                    { 
+                        title: "라일락", 
+                        artist: "아이유 (IU)", 
+                        duration: "03:34", 
+                        mood: "발랄한",
+                        curator: "따사롭고 찬란한 봄날의 마지막 페이지를 장식하는 기분 좋은 라일락 향기 같은 곡입니다. 경쾌한 디스코 비트와 청량한 리듬이 맑은 하늘 아래 걷는 당신의 보폭을 한껏 가볍게 만들어줄 거예요.",
+                        lyrics: "“꽃가루를 날려 어쩜 이렇게 하늘은 더 파란건지... 우리들의 아름다운 봄날의 페이지를 장식해.”"
+                    },
+                    { 
+                        title: "여행", 
+                        artist: "볼빨간사춘기 (BOL4)", 
+                        duration: "03:41", 
+                        mood: "신나는",
+                        curator: "푸른 하늘을 마주하는 순간 당장 캐리어를 싸서 떠나고 싶게 만드는 에너지가 가득합니다. 시원한 기타 루프와 특유의 톡 쏘는 보컬이 오늘 하루 일상 탈출을 꿈꾸는 당신을 응원합니다.",
+                        lyrics: "“저 오늘 떠나요 공항으로... 핸드폰은 꺼둘게요, 나를 찾지 마요!”"
+                    },
+                    { 
+                        title: "모든 날, 모든 순간", 
+                        artist: "폴킴 (Paul Kim)", 
+                        duration: "03:30", mood: "따뜻한",
+                        curator: "눈부신 햇살이 나를 포근하게 비출 때 들려오는 감성 발라드입니다. 맑게 정화된 공기 속에서 나직이 울리는 가사와 멜로디가 곁에 있는 소중한 사람들의 눈부신 소중함을 다시 깨닫게 해 줍니다.",
+                        lyrics: "“갈 곳을 잃어버린 내 삶에 따스한 빛이 되어준 그대를 사랑해.”"
+                    },
+                    { 
+                        title: "Give Love", 
+                        artist: "AKMU (악뮤)", 
+                        duration: "02:44", mood: "사랑스러운",
+                        curator: "봄 햇살 아래 통통 튀는 귀여운 멜로디가 돋보이는 어쿠스틱 팝송입니다. 악뮤 특유의 재기발랄하고 사랑스러운 가사가 하루 종일 당신의 입가에 싱그러운 미소를 짓게 해줄 것입니다.",
+                        lyrics: "“Give Love 사랑을 좀 주세요, Give Love 매일 기부하는 내 사랑을 위해.”"
+                    }
+                ]
+            },
+            rainy: {
+                title: "비오는 날의 옐로우 센티멘탈",
+                desc: "창가에 맺힌 빗방울을 보며, 차분하고 깊은 우수에 젖어보는 순간.",
+                emoji: "🌧️",
+                bgGradient: "from-yellow-50 via-amber-200 to-slate-200",
+                songs: [
+                    { 
+                        title: "비도 오고 그래서", 
+                        artist: "헤이즈 (Heize) (Feat. 신용재)", 
+                        duration: "03:22", mood: "쓸쓸한",
+                        curator: "빗소리와 완벽하게 어우러지는 애절한 피아노 루프와 특유의 몽환적인 보이스가 압권입니다. 비 오는 날이면 어김없이 차트 위로 흘러내리는, 그리움을 부르는 감성 가득한 대표적인 비 명곡입니다.",
+                        lyrics: "“비도 오고 그래서 네 생각이 났어... 생각이 나서 그래서 그랬던 거지 별 의미는 없어.”"
+                    },
+                    { 
+                        title: "비", 
+                        artist: "폴킴 (Paul Kim)", 
+                        duration: "03:55", mood: "감성적인",
+                        curator: "우산 속에 떨어지는 빗물 소리를 담은 듯 촉촉한 멜로디가 마음의 긴장을 부드럽게 풀어줍니다. 그리운 추억이 몽글몽글 빗속에 번져나갈 때, 귀에 깊은 온기를 남겨줄 잔잔한 보이스입니다.",
+                        lyrics: "“우산 속에 숨어서 널 기다리던 그 가슴 떨리던 시간 속에서 우리 머물러.”"
+                    },
+                    { 
+                        title: "우산", 
+                        artist: "에픽하이 (Epik High) (Feat. 윤하)", 
+                        duration: "05:01", mood: "아련한",
+                        curator: "가슴 시린 서정적인 멜로디와 시적인 래핑, 그리고 윤하의 아련한 음색이 어우러져 비 오는 날의 우울함을 차분하면서도 따뜻하게 위로해 주는 명실상부한 레전드 명곡입니다.",
+                        lyrics: "“어느새 빗물이 내 발목에 고이고, 참았던 눈물이 내 눈가에 고이고... 비는 내리고.”"
+                    },
+                    { 
+                        title: "비와 당신", 
+                        artist: "이무진", 
+                        duration: "04:02", mood: "잔잔한",
+                        curator: "담담한 어쿠스틱 편곡 위에 이무진의 날것 그대로의 빈티지한 음색이 더해졌습니다. 비 내리는 저녁, 옛사랑의 아련했던 기억을 조용히 추억하며 듣기에 가장 알맞은 따스한 발라드입니다.",
+                        lyrics: "“이젠 당신이 그립지 않죠... 흘러내리는 빗물 속에 내 눈물도 씻겨 가니까.”"
+                    }
+                ]
+            },
+            snowy: {
+                title: "눈오는 날의 옐로우 윈터",
+                desc: "하얗게 내린 세상 위로 포근하고 로맨틱한 눈꽃 멜로디가 흩날립니다.",
+                emoji: "❄️",
+                bgGradient: "from-yellow-50 via-amber-50 to-indigo-100",
+                songs: [
+                    { 
+                        title: "미리 메리 크리스마스", 
+                        artist: "아이유 (IU) (Feat. 천둥)", 
+                        duration: "04:28", mood: "설레는",
+                        curator: "새하얗게 온 세상이 덮이는 첫눈 오는 날, 겨울의 설렘을 한껏 끌어올리는 노래입니다. 듣기만 해도 가슴이 몽글몽글 해지는 맑은 종소리와 경쾌한 팝 비트가 한겨울의 고백을 연상케 합니다.",
+                        lyrics: "“하얀 눈이 내리던 날 우리는 처음 만났죠... 내 생에 가장 아름다운 크리스마스 선물.”"
+                    },
+                    { 
+                        title: "눈의 꽃", 
+                        artist: "박효신", 
+                        duration: "05:40", mood: "애절한",
+                        curator: "겨울이면 온 세상 거리에 가득 울려 퍼지는 겨울의 영원한 클래식입니다. 박효신의 웅장하면서도 쓸쓸한 보컬이 하얗게 흩날리는 눈꽃을 바라보며 깊은 사색과 사랑을 느끼게 해 줍니다.",
+                        lyrics: "“이 거리를 너와 걸어가며... 올해의 첫눈꽃을 바라보며 함께 있는 이 순간에 그저 감사할 뿐.”"
+                    },
+                    { 
+                        title: "12월의 기적", 
+                        artist: "EXO (엑소)", 
+                        duration: "04:43", mood: "아름다운",
+                        curator: "추운 바람을 포근하게 안아주는 따스한 피아노와 웅장한 오케스트레이션이 겨울의 아련한 감수성을 극대화합니다. 추운 한겨울 방 안에서 조용히 눈을 감고 듣기 좋은 애틋한 하모니를 보여줍니다.",
+                        lyrics: "“보이지 않는 걸 보려고 애쓰고 들리지 않는 걸 들으려 애쓰던 나... 기적이 일어나.”"
+                    },
+                    { 
+                        title: "첫눈", 
+                        artist: "EXO (엑소)", 
+                        duration: "03:48", mood: "포근한",
+                        curator: "첫눈이 내릴 때면 어김없이 음원 차트 정상으로 달려오는 아련한 미디엄 템포 곡입니다. 겨울 담요를 덮고 귤을 까먹으며 창밖 함박눈을 지켜볼 때 흘러나오면 가장 행복해지는 따뜻한 윈터 송입니다.",
+                        lyrics: "“첫눈 오는 이런 오후에, 너에게 전화를 걸 수만 있다면 기쁠 텐데.”"
+                    }
+                ]
+            },
+            cloudy: {
+                title: "흐린 날의 옐로우 몽글 카타르시스",
+                desc: "해는 조금 숨었지만, 구름 사이로 흐르는 몽글몽글한 아날로그 감성을 채웁니다.",
+                emoji: "☁️",
+                bgGradient: "from-yellow-100 via-slate-100 to-amber-100",
+                songs: [
+                    { 
+                        title: "주저하는 연인들을 위해", 
+                        artist: "잔나비", 
+                        duration: "04:25", mood: "빈티지",
+                        curator: "안개가 자욱하고 흐린 날 아침, 낡은 카세트테이프에서 흘러나오는 듯한 깊은 아날로그 울림을 선사합니다. 빈티지한 기타 톤과 읊조리는 보컬이 구름 가득한 하늘 밑 아늑한 위로가 되어 줍니다.",
+                        lyrics: "“나는 읽기 쉬운 마음이야... 처음 본 순간부터 이미 다 들켜버린 가슴 아픈 내 사랑.”"
+                    },
+                    { 
+                        title: "양화대교", 
+                        artist: "자이언티 (Zion.T)", 
+                        duration: "03:48", mood: "위로가 되는",
+                        curator: "회색빛 구름이 낮게 드리워져 어딘가 가슴 한구석이 쓸쓸해질 때, 나직하게 읊조리는 자이언티의 따스한 목소리가 찾아옵니다. 소박하고 진솔한 가사가 삶의 무게를 가만히 다독여 줍니다.",
+                        lyrics: "“행복하자 우리, 행복하자... 아프지 말고 아프지 말고 행복하자.”"
+                    },
+                    { 
+                        title: "밤편지", 
+                        artist: "아이유 (IU)", 
+                        duration: "04:13", mood: "차분한",
+                        curator: "조용하고 잔뜩 흐린 저녁 날, 소박하고 정갈한 통기타 선율 하나에 온전히 기대어 진심 어린 고백을 전하는 아름다운 서정시 같은 곡입니다. 듣는 이의 마음을 아주 편안하게 감싸 안아 줍니다.",
+                        lyrics: "“나 우리의 첫 입맞춤을 떠올려, 이 밤 그날의 반딧불을 당신의 창 가까이 보낼게요.”"
+                    },
+                    { 
+                        title: "한숨", 
+                        artist: "이하이 (LEE HI)", 
+                        duration: "04:48", mood: "깊은 위로",
+                        curator: "흐린 구름만큼 마음이 무거울 때, 우리의 가슴 깊은 곳의 한숨을 포근한 온기로 어루만져 줍니다. 괜찮다고, 토닥여 주는 이하이의 깊고 따스한 소울 풀 보이스가 큰 눈물하고 위로를 건넵니다.",
+                        lyrics: "“누군가의 한숨 그 무거운 숨을 내가 어떻게 헤아릴 수가 있을까요... 그래도 괜찮아요.”"
+                    }
+                ]
+            }
+        };
+
+        // 전역 상태 변수들
+        let activeWeather = 'sunny';
+        let currentPlaylist = [];
+        let currentPlayingIndex = 0;
+        let isPlaying = true; // 기본 애니메이션은 켜두기
+
+        window.onload = function() {
+            changeWeather('sunny');
+            setTicketDate();
+        };
+
+        // 날씨 탭 전환 비즈니스 로직
+        function changeWeather(weatherKey) {
+            activeWeather = weatherKey;
+            const data = weatherDatabase[weatherKey];
+
+            // 1. 전체 바디 그라데이션 전환 효과
+            document.body.className = `bg-gradient-to-br ${data.bgGradient} text-slate-800 min-h-screen flex flex-col transition-all duration-700`;
+
+            // 2. 상단 날씨 상태 텍스트 & 아이콘 수정
+            document.getElementById('current-weather-emoji').textContent = data.emoji;
+            document.getElementById('current-weather-title').textContent = data.title;
+            document.getElementById('current-weather-desc').textContent = data.desc;
+            document.getElementById('song-count').textContent = data.songs.length;
+
+            // 3. 네 가지 날씨 카테고리 버튼 외곽선 토글 활성화
+            const buttons = document.querySelectorAll('.weather-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('border-yellow-200', 'border-yellow-400', 'border-amber-500', 'border-2');
+                btn.classList.add('border-transparent');
+            });
+            const selectedBtn = document.getElementById('btn-' + weatherKey);
+            if (selectedBtn) {
+                selectedBtn.classList.remove('border-transparent');
+                selectedBtn.classList.add('border-2', 'border-amber-500');
+            }
+
+            // 4. 플레이리스트 데이터 적재 및 렌더링
+            currentPlaylist = [...data.songs];
+            renderPlaylist();
+
+            // 5. 첫 번째 곡으로 미니 플레이어 교체
+            selectSong(0);
+        }
+
+        // 플레이리스트 카드 그리기 (로컬 작동 100% 보장하는 예쁜 카드 구조)
+        function renderPlaylist() {
+            const container = document.getElementById('playlist-container');
+            container.innerHTML = '';
+
+            currentPlaylist.forEach((song, index) => {
+                const isSelected = index === currentPlayingIndex;
+                const activeCardStyle = isSelected 
+                    ? 'border-2 border-amber-500 bg-yellow-50/70 shadow-md' 
+                    : 'border border-yellow-100 hover:bg-yellow-50/40 hover:border-yellow-300 bg-white/50';
+
+                const cardHtml = `
+                    <div onclick="selectSong(${index})" class="p-4 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-between group ${activeCardStyle}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center text-amber-600 font-bold text-sm group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
+                                <i class="fa-solid fa-music"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm group-hover:text-amber-700 transition-colors">${song.title}</h4>
+                                <p class="text-[11px] text-slate-500 mt-0.5">${song.artist} • <span class="text-amber-600 font-semibold">${song.mood}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-amber-800 bg-yellow-100/50 group-hover:bg-yellow-200 px-2 py-1.5 rounded-lg font-bold transition">
+                                <i class="fa-solid fa-feather-pointed"></i> 큐레이션 보기
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium">${song.duration}</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // 특정 음악 선택 및 플레이어 큐레이션 보드 연동
+        function selectSong(index) {
+            currentPlayingIndex = index;
+            const song = currentPlaylist[index];
+
+            // 1. 플레이어 텍스트 패치
+            document.getElementById('player-title').textContent = song.title;
+            document.getElementById('player-artist').textContent = song.artist;
+
+            // 2. 큐레이터 메시지 & 명가사 패널 연동 패치
+            document.getElementById('curator-text').textContent = song.curator;
+            document.getElementById('lyrics-text').textContent = song.lyrics;
+            document.getElementById('lyrics-source').textContent = `- ${song.title} (${song.artist}) 명가사 중`;
+
+            // 모든 플레이리스트 목록 하이라이트 재렌더링
+            const cards = document.querySelectorAll('#playlist-container > div');
+            cards.forEach((card, idx) => {
+                if (idx === index) {
+                    card.className = "p-4 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-between group border-2 border-amber-500 bg-yellow-50/70 shadow-md";
+                } else {
+                    card.className = "p-4 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-between group border border-yellow-100 hover:bg-yellow-50/40 hover:border-yellow-300 bg-white/50";
+                }
+            });
+
+            // 플레이어 인터랙티브 시각 효과 싱크
+            if (isPlaying) {
+                startPlayerVisuals();
+            } else {
+                stopPlayerVisuals();
+            }
+        }
+
+        // 재생/일시정지 가상 토글 (눈으로 감상하는 인터랙티브)
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('play-pause-btn');
+
+            if (isPlaying) {
+                btn.innerHTML = '<i class="fa-solid fa-pause text-lg"></i>';
+                startPlayerVisuals();
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-play text-lg pl-1"></i>';
+                stopPlayerVisuals();
+            }
+        }
+
+        // 비주얼 연동 활성화 (파형 재생 애니메이션만 탑재)
+        function startPlayerVisuals() {
+            const bars = document.querySelectorAll('#visualizer div');
+            bars.forEach((bar, idx) => {
+                bar.style.transform = '';
+                bar.classList.add(`bar-${idx+1}`);
+            });
+        }
+
+        // 비주얼 연동 중단
+        function stopPlayerVisuals() {
+            const bars = document.querySelectorAll('#visualizer div');
+            bars.forEach((bar, idx) => {
+                bar.classList.remove(`bar-${idx+1}`);
+                bar.style.transform = 'scaleY(0.2)';
+            });
+        }
+
+        // 다음 곡 선택
+        function nextSong() {
+            let nextIdx = currentPlayingIndex + 1;
+            if (nextIdx >= currentPlaylist.length) {
+                nextIdx = 0;
+            }
+            selectSong(nextIdx);
+        }
+
+        // 이전 곡 선택
+        function prevSong() {
+            let prevIdx = currentPlayingIndex - 1;
+            if (prevIdx < 0) {
+                prevIdx = currentPlaylist.length - 1;
+            }
+            selectSong(prevIdx);
+        }
+
+        // 퀵 피드 키워드 자동 채우기
+        function quickFill(phrase) {
+            document.getElementById('ai-request-input').value = phrase;
+        }
+
+        // 실시간 티켓 날짜 설정
+        function setTicketDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            document.getElementById('ticket-date').textContent = `${year}.${month}.${date} ${hours}:${minutes}`;
+        }
+
+        // 감성 기분맞춤 티켓 프린팅 로직
+        function printCustomTicket() {
+            const inputVal = document.getElementById('ai-request-input').value.trim();
+            if (!inputVal) {
+                showCustomModal("알림 🌼", "티켓에 인쇄할 당신의 오늘 기분이나 가고 싶은 분위기를 적어보세요!");
+                return;
+            }
+
+            // 기분에 따라 가장 어울리는 노래 목록 중 하나를 매칭
+            let matchedSong = {};
+            
+            // 단순 기분 매칭 알고리즘
+            if (inputVal.includes('비') || inputVal.includes('카페') || inputVal.includes('우산') || inputVal.includes('쓸쓸')) {
+                matchedSong = weatherDatabase.rainy.songs[Math.floor(Math.random() * 4)];
+                document.getElementById('ticket-weather').textContent = "RAINY MOOD";
+            } else if (inputVal.includes('눈') || inputVal.includes('추운') || inputVal.includes('겨울') || inputVal.includes('포근')) {
+                matchedSong = weatherDatabase.snowy.songs[Math.floor(Math.random() * 4)];
+                document.getElementById('ticket-weather').textContent = "WINTER SNOW";
+            } else if (inputVal.includes('흐린') || inputVal.includes('공부') || inputVal.includes('밤') || inputVal.includes('한숨')) {
+                matchedSong = weatherDatabase.cloudy.songs[Math.floor(Math.random() * 4)];
+                document.getElementById('ticket-weather').textContent = "CLOUDY CHILL";
+            } else {
+                matchedSong = weatherDatabase.sunny.songs[Math.floor(Math.random() * 4)];
+                document.getElementById('ticket-weather').textContent = "SUNNY LIGHT";
+            }
+
+            // 티켓 노드 내용 실시간 교체
+            setTicketDate();
+            document.getElementById('ticket-emotion').textContent = inputVal;
+            document.getElementById('ticket-title').textContent = matchedSong.title;
+            document.getElementById('ticket-artist').textContent = matchedSong.artist;
+            document.getElementById('ticket-lyric').textContent = matchedSong.lyrics;
+
+            // 흔들리는 인쇄 애니메이션 효과 부여
+            const ticketFrame = document.getElementById('ticket-frame');
+            ticketFrame.classList.add('animate-bounce');
+            setTimeout(() => {
+                ticketFrame.classList.remove('animate-bounce');
+            }, 800);
+
+            showCustomModal("인쇄 완료 💛", `오늘 당신이 적어주신 기분 <strong>"${inputVal}"</strong>에 어울리는 추천곡 영수증 티켓이 성공적으로 인쇄되었습니다!<br><br>하단에서 인쇄된 이쁜 노란색 음악 티켓을 확인해 보세요.`);
+            document.getElementById('ai-request-input').value = '';
+        }
+
+        // 모달창 알리미 제작 (alert 미사용 보안)
+        function showCustomModal(title, text) {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4";
+            overlay.id = "custom-modal";
+
+            const card = document.createElement('div');
+            card.className = "bg-white w-full max-w-sm rounded-3xl p-6 border border-yellow-100 shadow-2xl space-y-4 text-center transform scale-95 transition-transform duration-300";
+            card.innerHTML = `
+                <div class="w-12 h-12 bg-yellow-100 text-amber-500 rounded-full flex items-center justify-center text-xl mx-auto"><i class="fa-solid fa-gift"></i></div>
+                <h4 class="font-extrabold text-slate-900 text-lg">${title}</h4>
+                <p class="text-sm text-slate-600 leading-relaxed">${text}</p>
+                <button onclick="closeModal()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition shadow-md shadow-yellow-200">확인완료</button>
+            `;
+
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            if (modal) modal.remove();
+        }
+    </script>
+</body>
+</html>

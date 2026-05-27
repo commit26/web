@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>뽀모도로 타이머 & To-Do List</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    }
+
+    body {
+      background: #ffe4ec;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #c2185b;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 450px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 28px;
+      padding: 35px 28px;
+      box-shadow: 0 10px 30px rgba(194, 24, 91, 0.15);
+      border: 3px solid #ffb6c9;
+      position: relative;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 900;
+      margin-bottom: 25px;
+      letter-spacing: -1px;
+      color: #d81b60;
+    }
+
+    .timer-box {
+      background: #fff0f5;
+      border-radius: 24px;
+      padding: 25px 20px;
+      text-align: center;
+      margin-bottom: 28px;
+      border: 2px dashed #ff6b9d;
+    }
+
+    /* 모드 전환 탭 스타일 */
+    .mode-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .mode-btn {
+      background: #ffe4ec;
+      color: #c2185b;
+      border: 2px solid #ffcbd9;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      transition: all 0.2s ease;
+      box-shadow: 0 3px 0px #ffcbd9;
+    }
+
+    .mode-btn:hover {
+      background: #ffd0df;
+    }
+
+    .mode-btn.active {
+      background: #ff5c93;
+      color: white;
+      border-color: #ff5c93;
+      box-shadow: 0 3px 0px #c2185b;
+    }
+
+    .timer {
+      font-size: 4rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+      color: #d81b60;
+      text-shadow: 2px 2px 0px #ffcbd9;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 700;
+    }
+
+    .control-btn {
+      background: #ff5c93;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 1rem;
+      box-shadow: 0 4px 0px #c2185b;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+      background: #ec407a;
+      box-shadow: 0 6px 0px #c2185b;
+    }
+
+    .control-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0px #c2185b;
+    }
+
+    .control-btn.pause {
+      background: #db7093;
+      box-shadow: 0 4px 0px #8b008b;
+    }
+    
+    .control-btn.pause:hover {
+      background: #c71585;
+      box-shadow: 0 6px 0px #8b008b;
+    }
+    
+    .control-btn.pause:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0px #8b008b;
+    }
+
+    .control-btn.reset {
+      background: #ffb6c1;
+      color: #c2185b;
+      box-shadow: 0 4px 0px #ff85a8;
+    }
+
+    .control-btn.reset:hover {
+      background: #ff99ad;
+      box-shadow: 0 6px 0px #ff85a8;
+    }
+
+    .control-btn.reset:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0px #ff85a8;
+    }
+
+    .todo-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .todo-input-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 12px 18px;
+      border-radius: 50px;
+      border: 2px solid #ff9dbb;
+      outline: none;
+      font-size: 1rem;
+      color: #c2185b;
+      background: #fff;
+      font-weight: bold;
+    }
+
+    .todo-input:focus {
+      border-color: #ff5c93;
+    }
+
+    .add-btn {
+      background: #ff5c93;
+      color: white;
+      padding: 0 22px;
+      border-radius: 50px;
+      font-size: 1rem;
+      box-shadow: 0 4px 0px #c2185b;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      background: #ec407a;
+      box-shadow: 0 6px 0px #c2185b;
+    }
+
+    .add-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0px #c2185b;
+    }
+
+    .todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .todo-item {
+      background: #fff0f5;
+      padding: 12px 16px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid #ffd0df;
+      gap: 10px;
+    }
+
+    .todo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .todo-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: #ff5c93;
+      cursor: pointer;
+    }
+
+    .todo-text {
+      font-weight: 700;
+      word-break: break-all;
+      flex: 1;
+      font-size: 1.05rem;
+      transition: all 0.2s ease;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      color: #ffb6c1;
+    }
+
+    .item-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .check-btn {
+      background: #ff85a8;
+      color: white;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .check-btn:hover {
+      background: #ec407a;
+    }
+
+    .delete-btn {
+      background: none;
+      color: #db7093;
+      font-size: 1.3rem;
+      padding: 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .delete-btn:hover {
+      color: #ff1493;
+      transform: scale(1.15);
+    }
+
+    .back-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #c2185b;
+      color: white;
+      text-decoration: none;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: 0 6px 14px rgba(194, 24, 91, 0.3);
+      transition: all 0.2s ease;
+      border: 2px solid white;
+      z-index: 1000;
+    }
+
+    .back-btn:hover {
+      transform: translateY(-2px);
+      background: #ad1457;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      border: 3px solid #ff69b4;
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      max-width: 320px;
+      width: 90%;
+      box-shadow: 0 8px 24px rgba(220, 20, 60, 0.2);
+    }
+
+    .modal-content p {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #c2185b;
+      margin-bottom: 20px;
+      word-break: keep-all;
+      line-height: 1.5;
+    }
+
+    .modal-btn {
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      border-radius: 50px;
+      box-shadow: 0 3px 0px #c2185b;
+    }
+
+    .modal-btn:hover {
+      background-color: #ff1493;
+    }
+
+    .modal-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0px #c2185b;
+    }
+
+    @media (max-width: 500px) {
+      .timer {
+        font-size: 3rem;
+      }
+
+      .container {
+        padding: 25px 18px;
+      }
+
+      .todo-input-box {
+        flex-direction: column;
+      }
+
+      .add-btn {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">💖 뽀모도로 타이머 💖</h1>
+
+    <div class="timer-box">
+      <!-- 집중 / 휴식 모드 선택 버튼 -->
+      <div class="mode-group">
+        <button class="mode-btn active" id="focusModeBtn" onclick="switchMode('focus')">집중 💖</button>
+        <button class="mode-btn" id="breakModeBtn" onclick="switchMode('break')">휴식 💝</button>
+      </div>
+
+      <div class="timer" id="timer">25:00</div>
+
+      <div class="button-group">
+        <button class="control-btn" id="startPauseBtn">시작</button>
+        <button class="control-btn reset" id="resetBtn">초기화</button>
+      </div>
+    </div>
+
+    <h2 class="todo-title">💝 오늘의 할 일 💝</h2>
+
+    <div class="todo-input-box">
+      <input
+        type="text"
+        class="todo-input"
+        id="todoInput"
+        placeholder="할 일을 입력하세요"
+      />
+      <button class="add-btn" id="addBtn">추가</button>
+    </div>
+
+    <ul class="todo-list" id="todoList"></ul>
+  </div>
+
+  <a href="index.html" class="back-btn">❤️ 메인으로 돌아가기</a>
+
+  <!-- 커스텀 모달 알림창 -->
+  <div id="custom-modal" class="modal-overlay">
+    <div class="modal-content">
+      <p id="modal-message"></p>
+      <button class="modal-btn" onclick="closeModal()">확인</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== 커스텀 모달 컨트롤 =====
+    const modal = document.getElementById('custom-modal');
+    const modalMessage = document.getElementById('modal-message');
+
+    function showModal(message) {
+      modalMessage.innerText = message;
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+
+    // ===== 뽀모도로 타이머 =====
+    const timerDisplay = document.getElementById('timer');
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const focusModeBtn = document.getElementById('focusModeBtn');
+    const breakModeBtn = document.getElementById('breakModeBtn');
+
+    let currentMode = 'focus'; // 'focus' (집중) 또는 'break' (휴식)
+    let totalSeconds = 25 * 60; // 기본은 집중 25분
+    let timer;
+    let isRunning = false;
+
+    function updateTimerDisplay() {
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+
+    // 모드 전환 함수
+    function switchMode(mode) {
+      if (currentMode === mode && isRunning) return; // 이미 실행 중인 동일 모드면 무시
+      
+      clearInterval(timer);
+      isRunning = false;
+      startPauseBtn.textContent = '시작';
+      startPauseBtn.classList.remove('pause');
+      
+      currentMode = mode;
+      
+      if (mode === 'focus') {
+        totalSeconds = 25 * 60;
+        focusModeBtn.classList.add('active');
+        breakModeBtn.classList.remove('active');
+      } else {
+        totalSeconds = 5 * 60;
+        breakModeBtn.classList.add('active');
+        focusModeBtn.classList.remove('active');
+      }
+      
+      updateTimerDisplay();
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        if (totalSeconds > 0) {
+          totalSeconds--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timer);
+          isRunning = false;
+          startPauseBtn.textContent = '시작';
+          startPauseBtn.classList.remove('pause');
+          
+          if (currentMode === 'focus') {
+            showModal('🎉 25분 집중 시간이 끝났습니다! 5분 휴식을 시작해보세요 💝');
+            switchMode('break');
+          } else {
+            showModal('💪 휴식이 끝났습니다! 다시 25분 집중을 시작해볼까요? 💖');
+            switchMode('focus');
+          }
+        }
+      }, 1000);
+    }
+
+    function resetTimerLogic() {
+      clearInterval(timer);
+      isRunning = false;
+      totalSeconds = (currentMode === 'focus') ? 25 * 60 : 5 * 60;
+      updateTimerDisplay();
+      startPauseBtn.textContent = '시작';
+      startPauseBtn.classList.remove('pause');
+    }
+
+    startPauseBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        startTimer();
+        isRunning = true;
+        startPauseBtn.textContent = '일시정지';
+        startPauseBtn.classList.add('pause');
+      } else {
+        clearInterval(timer);
+        isRunning = false;
+        startPauseBtn.textContent = '시작';
+        startPauseBtn.classList.remove('pause');
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      resetTimerLogic();
+    });
+
+    updateTimerDisplay();
+
+    // ===== Todo List =====
+    const todoInput = document.getElementById('todoInput');
+    const addBtn = document.getElementById('addBtn');
+    const todoList = document.getElementById('todoList');
+
+    function createTodoItem(text) {
+      const li = document.createElement('li');
+      li.className = 'todo-item';
+
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'todo-left';
+
+      // 체크박스 생성
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'todo-checkbox';
+
+      // 텍스트 생성
+      const span = document.createElement('span');
+      span.className = 'todo-text';
+      span.textContent = text;
+
+      leftDiv.appendChild(checkbox);
+      leftDiv.appendChild(span);
+
+      // 삭제 버튼 생성 및 조립을 위한 우측 그룹
+      const itemBtnGroup = document.createElement('div');
+      itemBtnGroup.className = 'item-btn-group';
+
+      // 완료/취소 텍스트 버튼
+      const checkBtn = document.createElement('button');
+      checkBtn.className = 'check-btn';
+      checkBtn.textContent = '완료';
+
+      // 체크박스 클릭 혹은 완료 버튼 클릭 시 클래스 및 상태 변화 연동
+      function toggleComplete() {
+        span.classList.toggle('completed');
+        const isCompleted = span.classList.contains('completed');
+        checkbox.checked = isCompleted;
+        checkBtn.textContent = isCompleted ? '취소' : '완료';
+      }
+
+      checkbox.addEventListener('change', toggleComplete);
+      checkBtn.addEventListener('click', toggleComplete);
+
+      // 개별 삭제 버튼 (&times;)
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.addEventListener('click', () => {
+        todoList.removeChild(li);
+      });
+
+      itemBtnGroup.appendChild(checkBtn);
+      itemBtnGroup.appendChild(deleteBtn);
+
+      li.appendChild(leftDiv);
+      li.appendChild(itemBtnGroup);
+      todoList.appendChild(li);
+    }
+
+    addBtn.addEventListener('click', () => {
+      const text = todoInput.value.trim();
+
+      if (text === '') {
+        showModal('할 일을 입력해주세요!');
+        return;
+      }
+
+      createTodoItem(text);
+      todoInput.value = '';
+      todoInput.focus();
+    });
+
+    todoInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>

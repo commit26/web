@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선풍기 시뮬레이터</title>
+    <!-- Tailwind CSS (현대적인 디자인을 바로 입혀주는 프레임워크) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 구글 폰트 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 선풍기 날개 회전 애니메이션 (속도 대폭 증가!) */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .fan-spin-1 { animation: spin 0.4s linear infinite; }
+        .fan-spin-2 { animation: spin 0.22s linear infinite; }
+        .fan-spin-3 { animation: spin 0.1s linear infinite; }
+        .fan-spin-4 { animation: spin 0.03s linear infinite; } /* 초강풍: 초고속 광속 회전 */
+        .fan-stop { animation: none; transition: transform 2.5s cubic-bezier(0.1, 0.8, 0.3, 1); }
+
+        /* 선풍기 머리 좌우 회전(공전) 애니메이션 */
+        @keyframes oscillate {
+            0% { transform: rotate(-25deg); }
+            50% { transform: rotate(25deg); }
+            100% { transform: rotate(-25deg); }
+        }
+        .oscillating {
+            animation: oscillate 5s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+
+        /* 바람 입자 흐름 애니메이션 */
+        @keyframes blow {
+            0% { transform: translateX(0) translateY(0) scale(0.8); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateX(200px) translateY(var(--y-offset, 0px)) scale(1.2); opacity: 0; }
+        }
+        .wind-particle {
+            animation: blow var(--duration, 1.5s) linear infinite;
+        }
+
+        /* [개그 요소] 단계별 진동 애니메이션 */
+        @keyframes vibrate-mild {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-2px, 2px) rotate(-0.5deg); }
+            75% { transform: translate(2px, -2px) rotate(0.5deg); }
+        }
+        .vibrating-mild {
+            animation: vibrate-mild 0.1s infinite;
+        }
+
+        @keyframes vibrate-extreme {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-8px, 6px) rotate(-3deg); }
+            30% { transform: translate(7px, -7px) rotate(3deg); }
+            50% { transform: translate(-6px, -3px) rotate(-1.5deg); }
+            70% { transform: translate(8px, 5px) rotate(2.5deg); }
+            90% { transform: translate(-4px, -4px) rotate(-1deg); }
+        }
+        .vibrating-extreme {
+            animation: vibrate-extreme 0.05s infinite;
+        }
+
+        /* [개그 요소] 선풍기 공중부양 이륙 발사 애니메이션 */
+        @keyframes rocket-launch {
+            0% { transform: translateY(0) scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(244,63,94,0)); }
+            15% { transform: translateY(30px) scale(1.05) rotate(-5deg); filter: drop-shadow(0 15px 25px rgba(244,63,94,0.6)); }
+            100% { transform: translateY(-1200px) scale(0.1) rotate(360deg); filter: drop-shadow(0 100px 50px rgba(244,63,94,0.8)); opacity: 0; }
+        }
+        .launched {
+            animation: rocket-launch 1.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+
+        /* 화염/연기 입자 스타일 */
+        @keyframes smoke-float {
+            0% { transform: translateY(0) scale(0.5); opacity: 0.8; }
+            100% { transform: translateY(80px) translateX(var(--smoke-x, 0px)) scale(2); opacity: 0; }
+        }
+        .smoke-particle {
+            animation: smoke-float 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between transition-colors duration-300 relative">
+
+    <!-- 상단 바 -->
+    <header class="bg-white shadow-sm dark:bg-slate-900 dark:text-white transition-colors duration-300">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-sky-600 dark:text-sky-400 flex items-center gap-2">
+                <span>🌀</span> 바람 솔솔 선풍기 시뮬레이터
+            </h1>
+            <!-- 다크모드 토글 -->
+            <button id="darkModeBtn" class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-all">
+                🌙 다크 모드
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
+        
+        <!-- 메인 시뮬레이터 구역 (좌측 선풍기, 우측 리모컨 컨트롤러) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            
+            <!-- 왼쪽: 선풍기 시각화 영역 (relative) -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-md flex flex-col items-center justify-center relative min-h-[420px] overflow-hidden transition-colors duration-300">
+                
+                <!-- [개그 요소] 선풍기 우주 탈출 시 나타나는 미니멀 오버레이 -->
+                <div id="gagOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center p-6 hidden z-40 transition-all duration-300 backdrop-blur-sm">
+                    <button id="resetGagBtn" class="bg-rose-500 hover:bg-rose-600 active:scale-95 transition-all text-white font-bold py-4 px-8 rounded-2xl shadow-xl shadow-rose-500/40 text-base flex items-center gap-2">
+                        <span>🛰️</span>
+                        <span>선풍기 주워오기</span>
+                    </button>
+                </div>
+
+                <!-- 바람이 나가는 영역 (파티클 효과 컨테이너) -->
+                <div id="windContainer" class="absolute right-0 top-1/4 bottom-1/3 left-1/2 pointer-events-none z-10">
+                    <!-- 바람 날개짓에 의해 자바스크립트로 파티클이 생성되는 자리 -->
+                </div>
+
+                <!-- 선풍기 물리 구조 -->
+                <div id="fanStructure" class="w-64 h-80 flex flex-col items-center justify-end relative transition-all">
+                    
+                    <!-- [개그용] 제트 연기/화염 발사 장치 구멍 -->
+                    <div id="exhaustContainer" class="absolute bottom-4 inset-x-0 h-10 pointer-events-none flex justify-center z-0"></div>
+
+                    <!-- 회전하는 머리 부분 (모터 케이스 + 날개 + 안전망) -->
+                    <div id="fanHead" class="w-48 h-48 relative z-20 transition-transform duration-300">
+                        
+                        <!-- 선풍기 뒷망 -->
+                        <div class="absolute inset-0 rounded-full border-4 border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-700/50 flex items-center justify-center">
+                            <div class="absolute w-full h-[2px] bg-slate-300 dark:bg-slate-600"></div>
+                            <div class="absolute w-[2px] h-full bg-slate-300 dark:bg-slate-600"></div>
+                        </div>
+
+                        <!-- 4엽 날개 구조 -->
+                        <div id="fanBlades" class="absolute inset-2 fan-stop flex items-center justify-center z-10">
+                            <svg class="w-full h-full" viewBox="0 0 100 100">
+                                <!-- 날개 1 (0도) -->
+                                <path d="M 46,50 Q 40,20 50,8 Q 60,20 54,50 Z" fill="rgba(56, 189, 248, 0.85)" transform="rotate(0 50 50)" />
+                                <!-- 날개 2 (90도) -->
+                                <path d="M 46,50 Q 40,20 50,8 Q 60,20 54,50 Z" fill="rgba(56, 189, 248, 0.85)" transform="rotate(90 50 50)" />
+                                <!-- 날개 3 (180도) -->
+                                <path d="M 46,50 Q 40,20 50,8 Q 60,20 54,50 Z" fill="rgba(56, 189, 248, 0.85)" transform="rotate(180 50 50)" />
+                                <!-- 날개 4 (270도) -->
+                                <path d="M 46,50 Q 40,20 50,8 Q 60,20 54,50 Z" fill="rgba(56, 189, 248, 0.85)" transform="rotate(270 50 50)" />
+                                
+                                <circle cx="50" cy="50" r="7" fill="#0ea5e9" />
+                                <circle cx="50" cy="50" r="3" fill="#e0f2fe" />
+                            </svg>
+                        </div>
+
+                        <!-- 선풍기 앞망 -->
+                        <div class="absolute inset-0 rounded-full border-4 border-slate-400/60 dark:border-slate-500/60 pointer-events-none flex items-center justify-center z-20">
+                            <svg class="absolute inset-0 w-full h-full text-slate-400/30 dark:text-slate-500/30" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <circle cx="50" cy="50" r="35" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <line x1="50" y1="5" x2="50" y2="95" stroke="currentColor" stroke-width="1" />
+                                <line x1="5" y1="50" x2="95" y2="50" stroke="currentColor" stroke-width="1" />
+                                <line x1="18.2" y1="18.2" x2="81.8" y2="81.8" stroke="currentColor" stroke-width="1" />
+                                <line x1="81.8" y1="18.2" x2="18.2" y2="81.8" stroke="currentColor" stroke-width="1" />
+                            </svg>
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-white to-slate-200 dark:from-slate-700 dark:to-slate-800 shadow-md flex items-center justify-center border border-slate-300 dark:border-slate-600">
+                                <span class="text-[10px] font-bold text-sky-600 dark:text-sky-400">WIND</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 목 부분 -->
+                    <div class="w-4 h-24 bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700 z-10 -mt-1 relative">
+                        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-6 h-6 rounded bg-slate-400 dark:bg-slate-500 border border-slate-500"></div>
+                    </div>
+
+                    <!-- 하단 지지대 발판 -->
+                    <div class="w-40 h-8 bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 rounded-t-2xl shadow-md z-20 flex items-center justify-center border-t border-slate-100 dark:border-slate-600">
+                        <div id="statusLed" class="w-3 h-3 rounded-full bg-red-500 shadow-lg transition-all duration-300"></div>
+                    </div>
+
+                </div>
+
+                <!-- 바람 세기 텍스트 상태 표시 -->
+                <div class="mt-4 text-center">
+                    <span id="speedText" class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">꺼짐 (OFF)</span>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 스마트 컨트롤러 리모컨 구역 -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 shadow-md flex flex-col justify-between transition-colors duration-300">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                        <span>🎛️</span> 선풍기 리모컨
+                    </h3>
+                    
+                    <!-- 전원 & 소리 버튼 -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <button id="powerBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-2xl shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                            <span class="text-xl">🔌</span>
+                            <span id="powerBtnText" class="text-sm">전원 켜기</span>
+                        </button>
+                        <button id="soundToggleBtn" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-4 rounded-2xl shadow-sm transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                            <span id="soundIcon" class="text-xl">🔇</span>
+                            <span class="text-sm">소리 꺼짐</span>
+                        </button>
+                    </div>
+
+                    <!-- 바람 세기 조절기 (4단계) -->
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">바람 세기</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button id="speed1" disabled class="speed-btn py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-medium transition-all text-sm">미풍</button>
+                            <button id="speed2" disabled class="speed-btn py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-medium transition-all text-sm">약풍</button>
+                            <button id="speed3" disabled class="speed-btn py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-medium transition-all text-sm">강풍</button>
+                            <button id="speed4" disabled class="speed-btn py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-bold transition-all text-sm text-rose-500 border-rose-200 hover:border-rose-400">초강풍 ⚡</button>
+                        </div>
+                    </div>
+
+                    <!-- 좌우 회전 조절기 -->
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">기능 설정</label>
+                        <button id="oscillateBtn" disabled class="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-semibold transition-all flex items-center justify-center gap-2">
+                            <span>↔️</span> 좌우 회전: <span id="oscillateStateText">꺼짐</span>
+                        </button>
+                    </div>
+
+                    <!-- 타이머 설정 구역 -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">꺼짐 예약 타이머</label>
+                            <span id="timerDisplay" class="text-xs font-bold text-indigo-500 dark:text-indigo-400 hidden">00:00 남음</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button id="timer10s" disabled class="timer-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 text-xs font-medium transition-all">10초</button>
+                            <button id="timer30s" disabled class="timer-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 text-xs font-medium transition-all">30초</button>
+                            <button id="timer1m" disabled class="timer-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 text-xs font-medium transition-all">1분</button>
+                            <button id="timerCancel" disabled class="timer-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 text-xs font-medium transition-all">취소</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 안내 멘트 -->
+                <div id="tipBox" class="text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-all">
+                    💡 <strong>꿀팁:</strong> 전원 버튼을 누르고 미풍, 약풍, 강풍을 선택하여 바람을 활성화해 보세요! 사운드를 켜면 생생한 공간감이 더해집니다.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 하단: 선풍기 상식 카드 섹션 -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 shadow-md transition-colors duration-300">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                <span>💡</span> 선풍기 상식 백과
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 상식 카드 1 -->
+                <div class="p-5 rounded-2xl bg-indigo-50/50 dark:bg-slate-700/30 border border-indigo-100/50 dark:border-slate-700">
+                    <span class="text-2xl">😴</span>
+                    <h4 class="font-bold text-slate-800 dark:text-white mt-3 mb-1">밀폐된 방 선풍기 괴담</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        "선풍기를 켜고 자면 질식사한다"는 말은 의학적 근거가 전혀 없는 대표적인 한국의 도시 전설입니다. 선풍기 바람은 산소 농도를 떨어뜨리거나 질식을 유발하지 못해요! 안심하고 주무셔도 됩니다.
+                    </p>
+                </div>
+                <!-- 상식 카드 2 -->
+                <div class="p-5 rounded-2xl bg-sky-50/50 dark:bg-slate-700/30 border border-sky-100/50 dark:border-slate-700">
+                    <span class="text-2xl">🥫</span>
+                    <h4 class="font-bold text-slate-800 dark:text-white mt-3 mb-1">모터 뒤 알루미늄 캔 효과</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        선풍기 모터 덮개 뒷부분에 다 마신 맥주 캔이나 음료수 캔을 찌그러뜨려 붙여두면 모터의 열이 금방 빠져나갑니다. 덕분에 미지근한 바람 대신 한결 더 시원한 바람이 계속해서 나옵니다!
+                    </p>
+                </div>
+                <!-- 상식 카드 3 -->
+                <div class="p-5 rounded-2xl bg-emerald-50/50 dark:bg-slate-700/30 border border-emerald-100/50 dark:border-emerald-100">
+                    <span class="text-2xl">⚡</span>
+                    <h4 class="font-bold text-slate-800 dark:text-white mt-3 mb-1">에어컨 시너지 효과</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        선풍기를 에어컨 바로 아래에 두고 머리를 위쪽으로 향하게 하면, 에어컨에서 나오는 차가운 공기가 집안 전체에 빠르게 대류하게 됩니다. 이 방법을 쓰면 전기세를 최대 20%까지 아낄 수 있어요!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-slate-100 dark:bg-slate-900/80 py-6 text-center border-t border-slate-200/50 dark:border-slate-800/50 transition-colors duration-300">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            © 2026 바람 솔솔 선풍기 프로젝트. AI와 함께 제작됨 🌀
+        </p>
+    </footer>
+
+    <!-- 화면 우측 하단 고정 '메인으로 돌아가기' 버튼 -->
+    <a href="index.html" class="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-5 py-3.5 rounded-full shadow-2xl hover:shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all duration-300 font-bold text-sm border border-slate-800 dark:border-slate-100">
+        <span class="text-base">🏠</span>
+        <span>메인으로 돌아가기</span>
+    </a>
+
+    <!-- 자바스크립트 영역 -->
+    <script>
+        /* ==================== 1. 다크모드 설정 ==================== */
+        const darkModeBtn = document.getElementById('darkModeBtn');
+        const htmlElement = document.documentElement;
+
+        darkModeBtn.addEventListener('click', () => {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                darkModeBtn.textContent = '🌙 다크 모드';
+            } else {
+                htmlElement.classList.add('dark');
+                darkModeBtn.textContent = '☀️ 라이트 모드';
+            }
+        });
+
+        /* ==================== 2. 선풍기 제어 상태 정의 ==================== */
+        let isPowerOn = false;
+        let fanSpeed = 0; // 0: 꺼짐, 1: 미풍, 2: 약풍, 3: 강풍, 4: 초강풍
+        let isOscillating = false;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        let isSoundEnabled = false;
+
+        // [개그 전용] 예약 비상 카운트 타이머들
+        let gagLaunchTimer = null;
+        let vibrationMildTimer = null;
+        let vibrationExtremeTimer = null;
+        let smokeInterval = null;
+        let isLaunched = false;
+
+        // 사운드를 위한 Web Audio API 변수들
+        let audioCtx = null;
+        let noiseSource = null;
+        let filterNode = null;
+        let gainNode = null;
+
+        // HTML 요소 가져오기
+        const fanStructure = document.getElementById('fanStructure');
+        const fanHead = document.getElementById('fanHead');
+        const fanBlades = document.getElementById('fanBlades');
+        const statusLed = document.getElementById('statusLed');
+        const speedText = document.getElementById('speedText');
+        const windContainer = document.getElementById('windContainer');
+        const exhaustContainer = document.getElementById('exhaustContainer');
+        const tipBox = document.getElementById('tipBox');
+
+        // 개그 UI 요소
+        const gagOverlay = document.getElementById('gagOverlay');
+        const resetGagBtn = document.getElementById('resetGagBtn');
+
+        const powerBtn = document.getElementById('powerBtn');
+        const powerBtnText = document.getElementById('powerBtnText');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        const speedBtns = document.querySelectorAll('.speed-btn');
+        const oscillateBtn = document.getElementById('oscillateBtn');
+        const oscillateStateText = document.getElementById('oscillateStateText');
+        
+        const timerBtns = document.querySelectorAll('.timer-btn');
+        const timerDisplay = document.getElementById('timerDisplay');
+
+        /* ==================== 3. 바람 효과 (파티클 생성) ==================== */
+        let particleInterval = null;
+
+        function startWindParticles() {
+            if (particleInterval) clearInterval(particleInterval);
+            
+            // 선풍기 세기에 따라 입자 날리는 빈도 다르게 설정
+            let spawnSpeed = 300;
+            if (fanSpeed === 2) spawnSpeed = 150;
+            if (fanSpeed === 3) spawnSpeed = 80;
+            if (fanSpeed === 4) spawnSpeed = 30; // 초강풍: 폭풍처럼 입자 생성
+
+            particleInterval = setInterval(() => {
+                if (!isPowerOn || fanSpeed === 0 || isLaunched) return;
+                
+                const particle = document.createElement('div');
+                const isSuper = fanSpeed === 4;
+                particle.className = `wind-particle absolute h-[2px] rounded-full ${isSuper ? 'w-12 bg-rose-400/70 dark:bg-rose-500/80' : 'w-8 bg-sky-200 dark:bg-sky-500/50'}`;
+                
+                // 불규칙하게 흩어지게 설정
+                const randomY = (Math.random() - 0.5) * 80;
+                particle.style.setProperty('--y-offset', `${randomY}px`);
+                particle.style.setProperty('--duration', `${(isSuper ? 0.4 : 1) + Math.random() * 0.5}s`);
+                
+                // 시작 지점 배치
+                particle.style.left = '10px';
+                particle.style.top = `${50 + (Math.random() - 0.5) * 40}%`;
+                
+                windContainer.appendChild(particle);
+
+                // 애니메이션이 끝나면 제거
+                setTimeout(() => {
+                    particle.remove();
+                }, 1000);
+
+            }, spawnSpeed);
+        }
+
+        function stopWindParticles() {
+            if (particleInterval) {
+                clearInterval(particleInterval);
+                particleInterval = null;
+            }
+            setTimeout(() => {
+                windContainer.innerHTML = '';
+            }, 500);
+        }
+
+        /* ==================== 4. 사운드 시스템 (ASMR 모터음/바람음 합성) ==================== */
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function createNoiseGenerator() {
+            if (!audioCtx) return;
+
+            // 1. 화이트 노이즈 생성
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+
+            // 2. 주파수 필터링
+            filterNode = audioCtx.createBiquadFilter();
+            filterNode.type = 'lowpass';
+            
+            // 3. 음량 제어 노드
+            gainNode = audioCtx.createGain();
+            
+            noiseSource.connect(filterNode);
+            filterNode.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            noiseSource.start();
+        }
+
+        function updateFanSound() {
+            if (!isSoundEnabled) {
+                stopFanSound();
+                return;
+            }
+
+            initAudio();
+            
+            if (noiseSource) {
+                try { noiseSource.stop(); } catch(e) {}
+            }
+
+            if (!isPowerOn || fanSpeed === 0) {
+                stopFanSound();
+                return;
+            }
+
+            createNoiseGenerator();
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // 전체 볼륨 약 1.5배 증폭 및 초강풍 2배 볼륨 적용
+            let cutoffFreq = 180;
+            let volume = 0.08;
+
+            if (fanSpeed === 1) {
+                cutoffFreq = 240;
+                volume = 0.22; // 이전 볼륨 대비 1.5배
+            } else if (fanSpeed === 2) {
+                cutoffFreq = 310;
+                volume = 0.44; 
+            } else if (fanSpeed === 3) {
+                cutoffFreq = 440;
+                volume = 0.68;
+            } else if (fanSpeed === 4) {
+                // 초강풍 전용: 엄청나게 세찬 오버데시벨 제트 엔진 사운드 튜닝 (기존 대비 2배 이상 우렁차게)
+                cutoffFreq = 580;
+                volume = 1.15; 
+            }
+
+            if (filterNode && gainNode) {
+                filterNode.frequency.setValueAtTime(cutoffFreq, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            }
+        }
+
+        function stopFanSound() {
+            if (noiseSource) {
+                try {
+                    noiseSource.stop();
+                } catch(e) {}
+                noiseSource = null;
+            }
+        }
+
+        soundToggleBtn.addEventListener('click', () => {
+            isSoundEnabled = !isSoundEnabled;
+            if (isSoundEnabled) {
+                soundIcon.textContent = '🔊';
+                soundToggleBtn.querySelector('span:last-child').textContent = '소리 켬';
+                soundToggleBtn.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+                soundToggleBtn.classList.add('bg-sky-500', 'text-white');
+                initAudio();
+            } else {
+                soundIcon.textContent = '🔇';
+                soundToggleBtn.querySelector('span:last-child').textContent = '소리 꺼짐';
+                soundToggleBtn.classList.remove('bg-sky-500', 'text-white');
+                soundToggleBtn.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+            }
+            updateFanSound();
+        });
+
+        /* ==================== 5. 타이머 제어 기능 ==================== */
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            timerSeconds = seconds;
+            timerDisplay.classList.remove('hidden');
+            
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    turnOffPower();
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} 남음`;
+        }
+
+        function cancelTimer() {
+            clearInterval(timerInterval);
+            timerSeconds = 0;
+            timerDisplay.classList.add('hidden');
+            timerBtns.forEach(btn => btn.classList.remove('bg-indigo-600', 'text-white'));
+            document.getElementById('timerCancel').classList.remove('bg-red-500', 'text-white');
+        }
+
+        document.getElementById('timer10s').addEventListener('click', () => {
+            highlightTimerBtn(document.getElementById('timer10s'));
+            startTimer(10);
+        });
+        document.getElementById('timer30s').addEventListener('click', () => {
+            highlightTimerBtn(document.getElementById('timer30s'));
+            startTimer(30);
+        });
+        document.getElementById('timer1m').addEventListener('click', () => {
+            highlightTimerBtn(document.getElementById('timer1m'));
+            startTimer(60);
+        });
+        document.getElementById('timerCancel').addEventListener('click', () => {
+            cancelTimer();
+        });
+
+        function highlightTimerBtn(activeBtn) {
+            timerBtns.forEach(btn => btn.classList.remove('bg-indigo-600', 'text-white'));
+            activeBtn.classList.add('bg-indigo-600', 'text-white');
+        }
+
+        /* ==================== 6. [개그 전용] 초강풍 4초 발사 메커니즘 ==================== */
+        
+        // 제트 화염/연기 시각 파티클 발사 장치
+        function spawnSmokeParticle() {
+            if (!isPowerOn || fanSpeed !== 4 || isLaunched) return;
+            const smoke = document.createElement('div');
+            // 주황/적색/백색 불꽃과 연기 표현
+            const colors = ['bg-amber-500', 'bg-rose-500', 'bg-slate-300', 'bg-amber-400', 'bg-slate-400/50'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            smoke.className = `smoke-particle absolute w-5 h-5 rounded-full ${randomColor} filter blur-sm`;
+            smoke.style.setProperty('--smoke-x', `${(Math.random() - 0.5) * 60}px`);
+            smoke.style.left = `${80 + (Math.random() - 0.5) * 30}px`;
+            smoke.style.bottom = '0px';
+
+            exhaustContainer.appendChild(smoke);
+            setTimeout(() => smoke.remove(), 800);
+        }
+
+        function triggerSuperWindGag() {
+            // 카운트다운 초기화
+            clearGagTimers();
+
+            // 1.5초 후: 경고 진동 1단계
+            vibrationMildTimer = setTimeout(() => {
+                if (fanSpeed === 4 && isPowerOn) {
+                    fanStructure.classList.add('vibrating-mild');
+                    tipBox.innerHTML = "🚨 <strong>경고:</strong> 선풍기 모터의 진동이 심각한 수준입니다! 출력을 즉시 낮추십시오!";
+                    tipBox.className = "text-xs text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-300 dark:border-amber-800 animate-pulse font-bold";
+                }
+            }, 1500);
+
+            // 2.5초 후: 극도 흔들림 진동 2단계 및 화염 연기 준비
+            vibrationExtremeTimer = setTimeout(() => {
+                if (fanSpeed === 4 && isPowerOn) {
+                    fanStructure.classList.remove('vibrating-mild');
+                    fanStructure.classList.add('vibrating-extreme');
+                    tipBox.innerHTML = "🔴 <strong>🚨 초비상 🚨:</strong> 임계 주파수 도달! 선풍기 모터 폭발 위험! <em>과부하 상태입니다!</em>";
+                    tipBox.className = "text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/30 p-3 rounded-xl border border-rose-400 dark:border-rose-800 font-extrabold animate-bounce";
+                    
+                    // 화염 파티클 발사 시작
+                    smokeInterval = setInterval(spawnSmokeParticle, 40);
+
+                    // Web Audio 사운드 극대화 삐이이이이익
+                    if (isSoundEnabled && filterNode && audioCtx) {
+                        filterNode.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 1.5);
+                    }
+                }
+            }, 2500);
+
+            // 4.0초 후: 발사! 날아감!
+            gagLaunchTimer = setTimeout(() => {
+                if (fanSpeed === 4 && isPowerOn) {
+                    launchFan();
+                }
+            }, 4000);
+        }
+
+        // 선풍기 공중부양 발사
+        function launchFan() {
+            isLaunched = true;
+            fanStructure.classList.remove('vibrating-extreme');
+            fanStructure.classList.add('launched');
+
+            // 바람 멈추기
+            stopWindParticles();
+
+            // 제트 엔진 발사 효과음 흉내
+            if (isSoundEnabled && filterNode && gainNode && audioCtx) {
+                filterNode.frequency.exponentialRampToValueAtTime(2800, audioCtx.currentTime + 0.5);
+                gainNode.gain.setValueAtTime(1.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.3);
+            }
+
+            // 이륙 완료 후 우주 제어 패널 등장
+            setTimeout(() => {
+                if (isLaunched) {
+                    gagOverlay.classList.remove('hidden');
+                    stopFanSound();
+                }
+            }, 1400);
+        }
+
+        // 우주 탈출 선풍기 회수 및 리셋
+        resetGagBtn.addEventListener('click', () => {
+            isLaunched = false;
+            gagOverlay.classList.add('hidden');
+            fanStructure.className = "w-64 h-80 flex flex-col items-center justify-end relative transition-all";
+            exhaustContainer.innerHTML = '';
+            turnOffPower();
+        });
+
+        function clearGagTimers() {
+            clearTimeout(vibrationMildTimer);
+            clearTimeout(vibrationExtremeTimer);
+            clearTimeout(gagLaunchTimer);
+            clearInterval(smokeInterval);
+            
+            fanStructure.classList.remove('vibrating-mild', 'vibrating-extreme', 'launched');
+            exhaustContainer.innerHTML = '';
+            
+            tipBox.innerHTML = "💡 <strong>꿀팁:</strong> 전원 버튼을 누르고 미풍, 약풍, 강풍을 선택하여 바람을 활성화해 보세요! 사운드를 켜면 생생한 공간감이 더해집니다.";
+            tipBox.className = "text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-all";
+        }
+
+        /* ==================== 7. 메인 작동 및 인터페이스 동기화 ==================== */
+
+        powerBtn.addEventListener('click', () => {
+            if (!isPowerOn) {
+                turnOnPower();
+            } else {
+                turnOffPower();
+            }
+        });
+
+        function turnOnPower() {
+            isPowerOn = true;
+            statusLed.classList.remove('bg-red-500');
+            statusLed.classList.add('bg-emerald-500', 'animate-pulse');
+            
+            powerBtnText.textContent = "전원 끄기";
+            powerBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            powerBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+
+            speedBtns.forEach(btn => {
+                btn.removeAttribute('disabled');
+                btn.classList.remove('text-slate-400', 'dark:text-slate-600');
+                btn.classList.add('text-slate-700', 'dark:text-slate-200');
+            });
+            oscillateBtn.removeAttribute('disabled');
+            oscillateBtn.classList.remove('text-slate-400', 'dark:text-slate-600');
+            oscillateBtn.classList.add('text-slate-700', 'dark:text-slate-200');
+
+            timerBtns.forEach(btn => {
+                btn.removeAttribute('disabled');
+                btn.classList.remove('text-slate-400', 'dark:text-slate-600');
+                btn.classList.add('text-slate-700', 'dark:text-slate-200');
+            });
+
+            setSpeed(1);
+        }
+
+        function turnOffPower() {
+            isPowerOn = false;
+            fanSpeed = 0;
+            statusLed.classList.remove('bg-emerald-500', 'animate-pulse');
+            statusLed.classList.add('bg-red-500');
+            
+            powerBtnText.textContent = "전원 켜기";
+            powerBtn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+            powerBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+
+            speedText.textContent = "꺼짐 (OFF)";
+            speedText.className = "text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider";
+
+            fanBlades.className = "absolute inset-2 fan-stop flex items-center justify-center z-10";
+
+            speedBtns.forEach(btn => {
+                btn.setAttribute('disabled', 'true');
+                btn.classList.remove('bg-sky-500', 'bg-rose-500', 'text-white', 'text-slate-700', 'dark:text-slate-200');
+                btn.classList.add('bg-slate-50', 'dark:bg-slate-800/50', 'text-slate-400', 'dark:text-slate-600');
+            });
+
+            oscillateBtn.setAttribute('disabled', 'true');
+            oscillateBtn.classList.remove('bg-sky-500', 'text-white', 'text-slate-700', 'dark:text-slate-200');
+            oscillateBtn.classList.add('bg-slate-50', 'dark:bg-slate-800/50', 'text-slate-400', 'dark:text-slate-600');
+            setOscillate(false);
+
+            timerBtns.forEach(btn => {
+                btn.setAttribute('disabled', 'true');
+                btn.classList.remove('bg-indigo-600', 'text-white', 'text-slate-700', 'dark:text-slate-200');
+                btn.classList.add('bg-slate-50', 'dark:bg-slate-800/50', 'text-slate-400', 'dark:text-slate-600');
+            });
+
+            cancelTimer();
+            clearGagTimers();
+            stopWindParticles();
+            stopFanSound();
+        }
+
+        function setSpeed(level) {
+            if (!isPowerOn || isLaunched) return;
+
+            fanSpeed = level;
+            clearGagTimers();
+
+            speedBtns.forEach((btn, index) => {
+                btn.classList.remove('bg-sky-500', 'bg-rose-500', 'text-white');
+                btn.classList.add('bg-slate-50', 'dark:bg-slate-800/50');
+                
+                if (index + 1 === level) {
+                    btn.classList.remove('bg-slate-50', 'dark:bg-slate-800/50');
+                    if (level === 4) {
+                        btn.classList.add('bg-rose-500', 'text-white');
+                    } else {
+                        btn.classList.add('bg-sky-500', 'text-white');
+                    }
+                }
+            });
+
+            fanBlades.className = `absolute inset-2 fan-spin-${level} flex items-center justify-center z-10`;
+
+            if (level === 1) {
+                speedText.textContent = "미풍 🍃";
+                speedText.className = "text-sm font-bold text-sky-400 dark:text-sky-300 uppercase tracking-wider animate-pulse";
+            } else if (level === 2) {
+                speedText.textContent = "약풍 💨";
+                speedText.className = "text-sm font-bold text-sky-500 dark:text-sky-400 uppercase tracking-wider animate-pulse";
+            } else if (level === 3) {
+                speedText.textContent = "강풍 🌀";
+                speedText.className = "text-sm font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider animate-bounce";
+            } else if (level === 4) {
+                speedText.textContent = "초강풍 ⚡🌪️";
+                speedText.className = "text-sm font-extrabold text-rose-500 dark:text-rose-400 uppercase tracking-wider animate-bounce";
+                triggerSuperWindGag();
+            }
+
+            startWindParticles();
+            updateFanSound();
+        }
+
+        document.getElementById('speed1').addEventListener('click', () => setSpeed(1));
+        document.getElementById('speed2').addEventListener('click', () => setSpeed(2));
+        document.getElementById('speed3').addEventListener('click', () => setSpeed(3));
+        document.getElementById('speed4').addEventListener('click', () => setSpeed(4));
+
+        oscillateBtn.addEventListener('click', () => {
+            if (!isPowerOn || isLaunched) return;
+            setOscillate(!isOscillating);
+        });
+
+        function setOscillate(state) {
+            isOscillating = state;
+            if (isOscillating) {
+                fanHead.classList.add('oscillating');
+                oscillateStateText.textContent = "켜짐";
+                oscillateBtn.classList.remove('bg-slate-50', 'dark:bg-slate-800/50');
+                oscillateBtn.classList.add('bg-sky-500', 'text-white');
+            } else {
+                fanHead.classList.remove('oscillating');
+                oscillateStateText.textContent = "꺼짐";
+                oscillateBtn.className = "w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 font-semibold transition-all flex items-center justify-center gap-2";
+            }
+        }
+    </script>
+</body>
+</html>
