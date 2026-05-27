@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹 프로젝트 갤러리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gallery-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gallery-card:nth-child(1) { animation-delay: 0.05s; }
+        .gallery-card:nth-child(2) { animation-delay: 0.1s; }
+        .gallery-card:nth-child(3) { animation-delay: 0.15s; }
+        .gallery-card:nth-child(4) { animation-delay: 0.2s; }
+        .gallery-card:nth-child(5) { animation-delay: 0.25s; }
+        .gallery-card:nth-child(6) { animation-delay: 0.3s; }
+        .gallery-card:nth-child(n+7) { animation-delay: 0.35s; }
+
+        .gallery-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-thumbnail {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-id {
+            font-size: 0.85rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
+            line-height: 1.4;
+            min-height: 2.8em;
+        }
+
+        .card-description {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .card-link:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 50px;
+        }
+
+        .error {
+            text-align: center;
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 20px;
+            }
+
+            .card-thumbnail {
+                height: 150px;
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .gallery {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 웹 프로젝트 갤러리</h1>
+            <p>AI와 함께 만든 다양한 웹 프로젝트들을 탐색하세요</p>
+        </div>
+
+        <div id="gallery" class="gallery">
+            <div class="loading">로딩 중...</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * GalleryManager: 갤러리 관리 및 렌더링을 위한 클래스
+         * 메타데이터를 로드하고 카드를 동적으로 생성합니다.
+         */
+        class GalleryManager {
+            constructor(containerId = 'gallery', metadataPath = 'metadata.json') {
+                this.container = document.getElementById(containerId);
+                this.metadataPath = metadataPath;
+                this.projects = [];
+            }
+
+            /**
+             * 메타데이터 파일 로드
+             */
+            async loadMetadata() {
+                try {
+                    const response = await fetch(this.metadataPath);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    this.projects = data.projects || [];
+                    return true;
+                } catch (error) {
+                    console.error('메타데이터 로드 실패:', error);
+                    this.showError('프로젝트를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+                    return false;
+                }
+            }
+
+            /**
+             * 프로젝트 카드 HTML 생성
+             */
+            createCard(project) {
+                const emoji = this.getEmoji(project.id);
+                const card = document.createElement('a');
+                card.href = `${project.id}.html`;
+                card.className = 'gallery-card';
+                card.innerHTML = `
+                    <div class="card-thumbnail">${emoji}</div>
+                    <div class="card-content">
+                        <div class="card-id">#${project.id}</div>
+                        <div class="card-title">${this.escapeHtml(project.title)}</div>
+                        <div class="card-description">${this.escapeHtml(project.description)}</div>
+                        <a href="${project.id}.html" class="card-link">프로젝트 보기 →</a>
+                    </div>
+                `;
+                return card;
+            }
+
+            /**
+             * 프로젝트 ID에 따라 이모지 할당
+             */
+            getEmoji(id) {
+                const emojiMap = {
+                    '125': '⚽',
+                    '221': '🎳',
+                    '228': '📚',
+                    '303': '🌲',
+                    '317': '💨',
+                    '326': '🐍',
+                    '401': '💪',
+                    '431': '🃏',
+                    '510': '♟️',
+                    '511': '⏱️',
+                    '612': '😌',
+                    '620': '🎲',
+                    '625': '🤖',
+                    '628': '🎵',
+                    '703': '🎡',
+                    '714': '🦕',
+                    '802': '📅',
+                    '824': '🎶',
+                    '918': '🎧'
+                };
+                return emojiMap[id] || '🎨';
+            }
+
+            /**
+             * HTML 특수문자 이스케이프
+             */
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            /**
+             * 에러 메시지 표시
+             */
+            showError(message) {
+                this.container.innerHTML = `<div class="error">${message}</div>`;
+            }
+
+            /**
+             * 갤러리 렌더링
+             */
+            render() {
+                if (this.projects.length === 0) {
+                    this.showError('표시할 프로젝트가 없습니다.');
+                    return;
+                }
+
+                this.container.innerHTML = '';
+                this.projects.forEach(project => {
+                    const card = this.createCard(project);
+                    this.container.appendChild(card);
+                });
+            }
+
+            /**
+             * 갤러리 초기화 및 렌더링
+             */
+            async init() {
+                const loaded = await this.loadMetadata();
+                if (loaded) {
+                    this.render();
+                }
+            }
+        }
+
+        // 페이지 로드 시 갤러리 초기화
+        document.addEventListener('DOMContentLoaded', async () => {
+            const gallery = new GalleryManager('gallery', 'metadata.json');
+            await gallery.init();
+        });
+    </script>
+</body>
+</html>

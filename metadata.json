@@ -1,0 +1,99 @@
+{
+  "projects": [
+    {
+      "id": "125",
+      "title": "자이언트 GK 승부차기 게임",
+      "description": "FIFA 파워 바 컨트롤 탑재! 게이지를 적절하게 모아 슛을 날려보세요!"
+    },
+    {
+      "id": "221",
+      "title": "락 네온 볼링 2026 - Retro Synthwave Bowling",
+      "description": "네온 스타일의 레트로 신스웨이브 볼링 게임"
+    },
+    {
+      "id": "228",
+      "title": "고1 핵심 과목 완벽 정리 (통합과학, 통합사회, 한국사)",
+      "description": "고1 필수 과목 총정리 및 학습 자료"
+    },
+    {
+      "id": "303",
+      "title": "잔혹동화 텍스트 RPG: 심연의 숲",
+      "description": "어둠의 숲에서의 모험, 텍스트 RPG 게임"
+    },
+    {
+      "id": "317",
+      "title": "선풍기 시뮬레이터",
+      "description": "인터랙티브 선풍기 시뮬레이션 애플리케이션"
+    },
+    {
+      "id": "326",
+      "title": "네온 스네이크 게임 (Neon Snake Game)",
+      "description": "네온 스타일의 클래식 뱀 게임"
+    },
+    {
+      "id": "401",
+      "title": "체육쌤의 맞춤형 건강 계산기 (BMI & BMR)",
+      "description": "BMI와 BMR을 계산하는 건강 관리 도구"
+    },
+    {
+      "id": "431",
+      "title": "미니 우노 (vs AI)",
+      "description": "AI와 대전하는 미니 우노 카드 게임"
+    },
+    {
+      "id": "510",
+      "title": "고급 체스 게임 (Advanced Chess)",
+      "description": "고급 기능이 탑재된 체스 게임"
+    },
+    {
+      "id": "511",
+      "title": "뽀모도로 타이머 & To-Do List",
+      "description": "생산성 향상을 위한 뽀모도로 타이머 및 할일 목록"
+    },
+    {
+      "id": "612",
+      "title": "스트레스 버스터 (Stress Buster)",
+      "description": "스트레스 해소 및 마음 안정을 위한 인터랙티브 게임"
+    },
+    {
+      "id": "620",
+      "title": "주사위 배틀 아레나 (Dice Battle Arena)",
+      "description": "주사위 게임으로 벌이는 전투 아레나"
+    },
+    {
+      "id": "625",
+      "title": "아두이노 원격 제어 & 실시간 모니터링 대시보드",
+      "description": "아두이노 장치 제어 및 실시간 모니터링 시스템"
+    },
+    {
+      "id": "628",
+      "title": "Random Music Pick",
+      "description": "랜덤 음악 선택 및 재생 시스템"
+    },
+    {
+      "id": "703",
+      "title": "나만의 돌림판",
+      "description": "맞춤형 돌림판 생성 및 회전 게임"
+    },
+    {
+      "id": "714",
+      "title": "기억력 테스트! 공룡 카드 뒤집기 게임",
+      "description": "공룡 테마의 카드 뒤집기 기억 게임"
+    },
+    {
+      "id": "802",
+      "title": "시간을 담은 디데이 대시보드",
+      "description": "중요한 날짜까지의 시간을 보여주는 디데이 대시보드"
+    },
+    {
+      "id": "824",
+      "title": "날씨별 감성 노래 추천 알리미 🎵",
+      "description": "오늘의 날씨에 맞는 감성 음악 추천"
+    },
+    {
+      "id": "918",
+      "title": "🎵 나만의 플레이리스트 공유 보드",
+      "description": "개인 플레이리스트 생성 및 공유 플랫폼"
+    }
+  ]
+}
