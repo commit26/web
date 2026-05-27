@@ -1,0 +1,99 @@
+{
+  "projects": [
+    {
+      "id": "125",
+      "title": "자이언트 GK 승부차기 게임",
+      "description": "Giant goalkeeper penalty shootout game"
+    },
+    {
+      "id": "221",
+      "title": "락 네온 볼링 2026 - Retro Synthwave Bowling",
+      "description": "A retro synthwave-themed bowling game experience"
+    },
+    {
+      "id": "228",
+      "title": "고1 핵심 과목 완벽 정리 (통합과학, 통합사회, 한국사)",
+      "description": "High school core subjects study guide"
+    },
+    {
+      "id": "303",
+      "title": "잔혹동화 텍스트 RPG: 심연의 숲",
+      "description": "Dark fairy tale text-based RPG adventure"
+    },
+    {
+      "id": "317",
+      "title": "선풍기 시뮬레이터",
+      "description": "Fan simulator interactive experience"
+    },
+    {
+      "id": "326",
+      "title": "네온 스네이크 게임 (Neon Snake Game)",
+      "description": "Neon-styled snake game with modern aesthetics"
+    },
+    {
+      "id": "401",
+      "title": "체육쌤의 맞춤형 건강 계산기 (BMI & BMR)",
+      "description": "PE teacher's personalized health calculator"
+    },
+    {
+      "id": "431",
+      "title": "미니 우노 (vs AI)",
+      "description": "Mini Uno card game with AI opponent"
+    },
+    {
+      "id": "510",
+      "title": "고급 체스 게임 (Advanced Chess)",
+      "description": "Advanced chess game with intelligent gameplay"
+    },
+    {
+      "id": "511",
+      "title": "뽀모도로 타이머 & To-Do List",
+      "description": "Pomodoro timer with integrated task management"
+    },
+    {
+      "id": "612",
+      "title": "스트레스 버스터 (Stress Buster)",
+      "description": "Stress relief and relaxation tool"
+    },
+    {
+      "id": "620",
+      "title": "주사위 배틀 아레나 (Dice Battle Arena)",
+      "description": "Dice-based battle arena game"
+    },
+    {
+      "id": "625",
+      "title": "아두이노 원격 제어 & 실시간 모니터링 대시보드",
+      "description": "Arduino remote control and monitoring dashboard"
+    },
+    {
+      "id": "628",
+      "title": "Random Music Pick",
+      "description": "Random music selection and recommendation tool"
+    },
+    {
+      "id": "703",
+      "title": "나만의 돌림판",
+      "description": "Personal spinner wheel creator"
+    },
+    {
+      "id": "714",
+      "title": "기억력 테스트! 공룡 카드 뒤집기 게임",
+      "description": "Memory test with dinosaur card flip game"
+    },
+    {
+      "id": "802",
+      "title": "시간을 담은 디데이 대시보드",
+      "description": "D-day countdown dashboard with time tracking"
+    },
+    {
+      "id": "824",
+      "title": "날씨별 감성 노래 추천 알리미 🎵",
+      "description": "Weather-based emotional music recommendation service"
+    },
+    {
+      "id": "918",
+      "title": "🎵 나만의 플레이리스트 공유 보드",
+      "description": "Personal playlist sharing board"
+    }
+  ]
+}
